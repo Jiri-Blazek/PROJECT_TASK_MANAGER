@@ -1,26 +1,37 @@
 from django.db import models
 from django.utils import timezone
+from django.contrib.auth import get_user_model
 
-# Create your models here.
+User = get_user_model()
 
 
-class Task(models.Model):
-    number = models.PositiveSmallIntegerField()
+class TaskInstance(models.Model):
+    pid = models.PositiveIntegerField()
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+
+
+class Program(models.Model):
+    program = models.CharField(max_length=50)
+    configuration = models.ForeignKey("Configuration", on_delete=models.CASCADE)
+    task_instance = models.ForeignKey("TaskInstance", on_delete=models.CASCADE)
 
 
 class Configuration(models.Model):
-    program = models.CharField(max_length=50)
     file_name = models.CharField(max_length=50)
     working_directory = models.CharField(max_length=200)
     additional_parameters = models.CharField(max_length=100, blank=True)
+    task_instance = models.ForeignKey("TaskInstance", on_delete=models.CASCADE)
 
 
-class System_resources(models.Model):
+class SystemResources(models.Model):
     cpu = models.PositiveSmallIntegerField()
     memory = models.PositiveSmallIntegerField()
-    is_running = models.BooleanField()
+    date = models.DateTimeField()
+    task_instance = models.ForeignKey("TaskInstance", on_delete=models.CASCADE)
 
 
 class Schedule(models.Model):
     start_time = models.DateTimeField(default=timezone.now)
+    # start_time = models.DateTimeField(auto_now_add=True)
     end_time = models.DateTimeField()
+    task_instance = models.ForeignKey("TaskInstance", on_delete=models.CASCADE)
