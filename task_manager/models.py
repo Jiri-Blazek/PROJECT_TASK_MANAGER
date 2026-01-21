@@ -12,7 +12,6 @@ class TaskInstance(models.Model):
 
 class Program(models.Model):
     program = models.CharField(max_length=50)
-    configuration = models.ForeignKey("Configuration", on_delete=models.CASCADE)
     task_instance = models.ForeignKey("TaskInstance", on_delete=models.CASCADE)
 
 
@@ -20,7 +19,7 @@ class Configuration(models.Model):
     file_name = models.CharField(max_length=50)
     working_directory = models.CharField(max_length=200)
     additional_parameters = models.CharField(max_length=100, blank=True)
-    task_instance = models.ForeignKey("TaskInstance", on_delete=models.CASCADE)
+    program = models.ForeignKey("Program", on_delete=models.CASCADE)
 
 
 class SystemResources(models.Model):
