@@ -1,10 +1,10 @@
 const cpus_chart = document.getElementById("cpus_chart");
 
-max_cpus = [100, 200, 100, 100, 50, 50];
-used_cpus = [65, 59, 80, 81, 40, 49];
+max_cpus = [100, 100, 100, 100];
+used_cpus = [65, 59, 80, 81];
 rest_cpus = max_cpus.map((x, i) => x - used_cpus[i]);
 
-const labels_cpus = ['Node 01', 'Node 02', 'Node 03', 'Node 04', 'Node 08', 'Node 09'];
+const labels_cpus = ['Word', 'Powerpoint', 'Excel', 'Total'];
 
 const data_used_cpus = {
     labels: labels_cpus,

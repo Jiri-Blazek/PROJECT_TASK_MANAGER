@@ -20,6 +20,8 @@
 
         }
 
+
+
         .selectionBlock {
             padding-left: 5rem;
             padding-top: 0.25rem;
@@ -35,7 +37,8 @@
         }
 
         .selectionBlock>button {
-            min-width: 10rem;
+            min-width: 18rem;
+            margin-left: 18rem;
         }
 
         .selectionBlock>div>select {
@@ -49,9 +52,6 @@
             min-width: 18rem;
         }
 
-        #deleteRestartFiles {
-            min-width: 18rem;
-        }
 
         .description {
             margin-left: 1rem;
@@ -104,9 +104,10 @@
     <article class="panel is-warning">
         <p class="panel-heading" style="text-align: center;">Tasks Manager</p>
         <p class="panel-tabs">
-
             <a aria-controls="overview" class="is-active">Overview</a>
-            <a aria-controls="taskConfiguration">Task configuration</a>
+            <a aria-controls="word">Word</a>
+            <a aria-controls="excel">Excel</a>
+            <a aria-controls="powerpoint">Powerpoint</a>
         </p>
 
         <script src="https://cdn.jsdelivr.net/npm/chart.js">
@@ -136,12 +137,19 @@
                             </div>
                         </th>
                         <th>Name</th>
-                        <th>Program</th>
+                        <th>Program
+                            <div class="select is-warning is-small">
+                                <select id="programFilter"
+                                    style="max-width: 6rem; margin-left: 0.5rem; border-color: lightgray;">
+                                    <option>All</option>
+                                </select>
+                            </div>
+                        </th>
                         <th>Running time</th>
                         <th>Start time</th>
                         <th>Time limit</th>
-                        <th>CPUs</th>
-                        <th>Min. memory</th>
+                        <th>Used CPUs</th>
+                        <th>Used memory</th>
 
                     </tr>
                     <tr>
@@ -213,6 +221,27 @@
                 const runningJobsTable = document.getElementById("runningJobsTable");
                 const tableRows = runningJobsTable.getElementsByTagName("tr");
 
+                const tablePrograms = document.querySelectorAll(".program");
+                const programList = document.getElementById("programFilter");
+
+                generateProgramList();
+
+                function generateProgramList() {
+                    let programsList = [];
+
+                    tablePrograms.forEach((el) => {
+                        if (!programsList.includes(el.textContent)) {
+                            programsList.push(el.textContent);
+
+                            const newListItem = document.createElement("option");
+                            newListItem.textContent = el.textContent;
+                            programList.appendChild(newListItem);
+                        }
+                    });
+                }
+
+
+
                 generateUserList()
 
                 //-------------------- Creation of user list ---------------//
@@ -232,20 +261,31 @@
                 //-------------------- Filter by user ---------------//
                 function filterTable() {
                     const userValue = userList.value;
+                    const programValue = programList.value;
 
                     for (let i = 1; i < tableRows.length; i++) {
-                        const cells = tableRows[i].querySelector(".tableUser");
-                        const user = cells.textContent;
+                        const userCell = tableRows[i].querySelector(".tableUser");
+                        const programCell = tableRows[i].querySelector(".program");
+
+                        const user = userCell.textContent;
+                        const program = programCell.textContent;
 
                         let visible = true;
 
-                        if (userValue !== user && userValue !== 'All') {
+                        if (userValue !== 'All' && user !== userValue) {
                             visible = false;
                         }
+
+                        if (programValue !== 'All' && program !== programValue) {
+                            visible = false;
+                        }
+
                         tableRows[i].style.display = visible ? "" : "none";
                     }
                 }
                 userFilter.addEventListener("change", filterTable);
+                programFilter.addEventListener("change", filterTable);
+
 
 
                 //-------------------- Kill job ---------------//
@@ -320,39 +360,19 @@
                     new Chart(memory_chart, memory_chart_config);
                     new Chart(cpus_chart, cpus_chart_config);
                 </script>
-                <!--
-                <div>
-                    <canvas id="barChart"></canvas>
-                </div>
-                <script src="barChart.js"></script>
-                <script>
-                    new Chart(barChart, barChart_config);
-                </script>
-                
-                <div>
-                    <canvas style="min-height:300px; min-width: 600px;" id="lineChart"></canvas>
-                </div>
-            </div>
-            <script src="lineChart.js"></script>
-            <script>
-                let b = new Chart(lineChart, lineChart_config);
-                //   b.resize();
-                //   b.update();
-            </script>
--->
+
             </div>
         </div>
+
+
         <!------------------------------------------------------------------------------------------------>
-        <!---------------------------------- Program configuration --------------------------------------->
+        <!---------------------------------- Word configuration --------------------------------------->
         <!------------------------------------------------------------------------------------------------>
 
-
-        <div id="taskConfiguration" class="panel-block is-hidden">
-
-
+        <div id="word" class="panel-block is-hidden">
             <!------------------------------ Select project name ----------------------------------->
             <div class="selectionBlock">
-                <label for="project_name">File Name</label>
+                <label for="file_name_word">File Name</label>
                 <input name="project_name" id="project_name" class="input is-warning, submit_value" type="text"
                     placeholder="File Name" />
             </div>
@@ -363,6 +383,156 @@
                 <label for="selectWorkingDir">Working directory</label>
                 <div class="select is-warning">
                     <select name="selectWorkingDir" id="selectWorkingDir" class="submit_value">
+                    </select>
+                </div>
+            </div>
+
+
+            <!------------------------------ Begin time  ------------------------------------->
+            <div class="selectionBlock">
+                <label for="begin time">Begin Time</label>
+                <input name="begin time" id="begin time" class="input is-warning, submit_value" value="now" type="text"
+                    placeholder="Default now" />
+                <div class="description">
+                    Now or time HH:MM, for example 5:00; or as a delay: now+36hour
+                </div>
+            </div>
+
+            <!------------------------------ Max. estimated time  ------------------------------------->
+            <div class="selectionBlock">
+                <label for="max. estimated time">Max. Estimated Time [h]</label>
+                <input name="max. estimated time" id="max. estimated time"
+                    class="input is-warning, submit_value, number" value="8" type="text"
+                    placeholder="Default 8 hours" />
+                <div class="description">
+                    After this time the job <span style="color: red;">will be killed!</span>
+                </div>
+            </div>
+
+            <!------------------------------ Add parameter ----------------------------------->
+            <div class="selectionBlock">
+                <label for="parameter_name">Add Parameter <br>(Optional)</label>
+                <input name="parameter_name" id="parameter_name" class="input is-warning, submit_value" type="text"
+                    placeholder="Add Parameter" />
+            </div>
+
+
+            <!------------------------------------------- Submit  --------------------------------------->
+            <div class="buttons selectionBlock" style="text-align: center">
+                <button id="submit" class="button is-warning">Submit</button>
+            </div>
+
+            <!-------------------------------------------Submit info  --------------------------------------->
+            <article class="message is-warning is-hidden info" id="submitInfo">
+                <div class="message-header">
+                    <p>Submit info</p>
+                </div>
+                <div class="message-body">
+                    <div id="submitInfoContent">
+                    </div>
+                    <div class="buttons" style="display: flex; justify-content: center;padding-top: 2rem; ">
+                        <button class="button is-warning" id="closeButton">OK</button>
+
+                    </div>
+                </div>
+            </article>
+        </div>
+
+
+        <!------------------------------------------------------------------------------------------------>
+        <!---------------------------------- Excel configuration --------------------------------------->
+        <!------------------------------------------------------------------------------------------------>
+
+
+        <div id="excel" class="panel-block is-hidden">
+
+
+            <!------------------------------ Select project name ----------------------------------->
+            <div class="selectionBlock">
+                <label for="project_name">File Name</label>
+                <input name="project_name" id="project_name2" class="input is-warning, submit_value" type="text"
+                    placeholder="File Name" />
+            </div>
+
+
+            <!------------------------------ Select working directory ------------------------------------->
+            <div class="selectionBlock">
+                <label for="selectWorkingDir">Working directory</label>
+                <div class="select is-warning">
+                    <select name="selectWorkingDir" id="selectWorkingDir2" class="submit_value">
+                    </select>
+                </div>
+            </div>
+
+
+            <!------------------------------ Begin time  ------------------------------------->
+            <div class="selectionBlock">
+                <label for="begin time">Begin Time</label>
+                <input name="begin time" id="begin time2" class="input is-warning, submit_value" value="now" type="text"
+                    placeholder="Default now" />
+                <div class="description">
+                    Now or time HH:MM, for example 5:00; or as a delay: now+36hour
+                </div>
+            </div>
+            <!------------------------------ Max. estimated time  ------------------------------------->
+            <div class="selectionBlock">
+                <label for="max. estimated time">Max. Estimated Time [h]</label>
+                <input name="max. estimated time" id="max. estimated time2"
+                    class="input is-warning, submit_value, number" value="8" type="text"
+                    placeholder="Default 8 hours" />
+                <div class="description">
+                    After this time the job <span style="color: red;">will be killed!</span>
+                </div>
+            </div>
+
+            <!------------------------------ Add parameter ----------------------------------->
+            <div class="selectionBlock">
+                <label for="parameter_name">Add Parameter <br>(Optional)</label>
+                <input name="parameter_name" id="parameter_name2" class="input is-warning, submit_value" type="text"
+                    placeholder="Add Parameter" />
+            </div>
+
+            <!------------------------------------------- Submit  --------------------------------------->
+            <div class="buttons selectionBlock">
+                <button id="submit2" class="button is-warning">Submit</button>
+            </div>
+            <!-------------------------------------------Submit info  --------------------------------------->
+            <article class="message is-warning is-hidden info" id="submitInfo2">
+                <div class="message-header">
+                    <p>Submit info</p>
+                </div>
+                <div class="message-body">
+                    <div id="submitInfoContent2">
+                    </div>
+                    <div class="buttons" style="display: flex; justify-content: center;padding-top: 2rem; ">
+                        <button class="button is-warning" id="closeButton2">OK</button>
+
+                    </div>
+                </div>
+            </article>
+        </div>
+
+        <!------------------------------------------------------------------------------------------------>
+        <!---------------------------------- Powerpoint configuration --------------------------------------->
+        <!------------------------------------------------------------------------------------------------>
+
+
+        <div id="powerpoint" class="panel-block is-hidden">
+
+
+            <!------------------------------ Select project name ----------------------------------->
+            <div class="selectionBlock">
+                <label for="project_name">File Name</label>
+                <input name="project_name" id="project_name3" class="input is-warning, submit_value" type="text"
+                    placeholder="File Name" />
+            </div>
+
+
+            <!------------------------------ Select working directory ------------------------------------->
+            <div class="selectionBlock">
+                <label for="selectWorkingDir">Working directory</label>
+                <div class="select is-warning">
+                    <select name="selectWorkingDir" id="selectWorkingDir3" class="submit_value">
                     </select>
                 </div>
                 <!---
@@ -378,31 +548,12 @@
 -->
             </div>
 
-            <!------------------------------ Add parameter ----------------------------------->
-            <div class="selectionBlock">
-                <label for="parameter_name">Add Parameter <br>(Optional)</label>
-                <input name="parameter_name" id="parameter_name" class="input is-warning, submit_value" type="text"
-                    placeholder="Add Parameter" />
-            </div>
-
-            <!------------------------------ Select program  ------------------------------------->
-            <div class="selectionBlock">
-                <label for="selectProgram">Program</label>
-                <div class="select is-warning">
-                    <select name="selectProgram" id="selectProgram" class="submit_value">
-                        <option>Word</option>
-                        <option>Excel</option>
-                        <option>Powerpoint</option>
-                    </select>
-                </div>
-            </div>
-
 
 
             <!------------------------------ Begin time  ------------------------------------->
             <div class="selectionBlock">
                 <label for="begin time">Begin Time</label>
-                <input name="begin time" id="begin time" class="input is-warning, submit_value" value="now" type="text"
+                <input name="begin time" id="begin time3" class="input is-warning, submit_value" value="now" type="text"
                     placeholder="Default now" />
                 <div class="description">
                     Now or time HH:MM, for example 5:00; or as a delay: now+36hour
@@ -411,150 +562,163 @@
             <!------------------------------ Max. estimated time  ------------------------------------->
             <div class="selectionBlock">
                 <label for="max. estimated time">Max. Estimated Time [h]</label>
-                <input name="max. estimated time" id="max. estimated time"
+                <input name="max. estimated time" id="max. estimated time3"
                     class="input is-warning, submit_value, number" value="8" type="text"
                     placeholder="Default 8 hours" />
                 <div class="description">
                     After this time the job <span style="color: red;">will be killed!</span>
                 </div>
             </div>
+
+            <!------------------------------ Add parameter ----------------------------------->
+            <div class="selectionBlock">
+                <label for="parameter_name">Add Parameter <br>(Optional)</label>
+                <input name="parameter_name" id="parameter_name3" class="input is-warning, submit_value" type="text"
+                    placeholder="Add Parameter" />
+            </div>
+
+
             <!------------------------------------------- Submit  --------------------------------------->
             <div class="buttons selectionBlock">
-                <button id="submit" class="button is-warning">Submit</button>
+                <button id="submit3" class="button is-warning">Submit</button>
             </div>
             <!-------------------------------------------Submit info  --------------------------------------->
-            <article class="message is-warning is-hidden info" id="submitInfo">
+            <article class="message is-warning is-hidden info" id="submitInfo3">
                 <div class="message-header">
                     <p>Submit info</p>
                 </div>
                 <div class="message-body">
-                    <div id="submitInfoContent">
+                    <div id="submitInfoContent3">
                     </div>
                     <div class="buttons" style="display: flex; justify-content: center;padding-top: 2rem; ">
-                        <button class="button is-warning" id="closeButton">OK</button>
+                        <button class="button is-warning" id="closeButton3">OK</button>
 
                     </div>
                 </div>
             </article>
-
-
-
-            <!---------------------------------------------------------------------------------->
-            <!------------------------------------JavaScript  ---------------------------------->
-            <!---------------------------------------------------------------------------------->
-
-            <script>
-                // list of files - in future from Python
-                InputFileList = ['C:\\Dokumenty', 'C:\\Dokumenty\\Cars\\'];
-
-
-
-                //---------------check button for deleting restart files------------------------------//
-                let deleteRestartFiles = false;
-                const check_buttons = document.querySelectorAll("#deleteRestartFiles input");
-                check_buttons.forEach(item => {
-                    item.addEventListener("change", e => {
-                        if (item.value === 'true')
-                            deleteRestartFiles = true;
-                        else (deleteRestartFiles = false);
-                    });
-                });
-
-
-                //-------------------- Creation of file list of potencial input files ---------------//
-                let selected_input_file = null;
-                InputFileList.forEach((el, index) => {
-                    const item = document.getElementById("selectWorkingDir");
-                    const newListItem = document.createElement("option");
-                    newListItem.textContent = el;
-                    if (index === 0) {
-                        selected_input_file = newListItem.value
-                    }
-                    item.appendChild(newListItem);
-                })
-                const inputFile = document.getElementById("selectWorkingDir");
-                inputFile.addEventListener("change", e => {
-                    selected_input_file = inputFile.value;
-                });
-
-
-                // --------------------- Creation of dictionary for submit parameters------------------///
-
-                let submitValuesList = {};
-                const submit = document.getElementById("submit");
-                const inputList = document.querySelectorAll('.submit_value');
-                const valuesForCheck = document.querySelectorAll('.number');
-                const submitInfo = document.getElementById("submitInfo");
-                const closeButton = document.getElementById("closeButton");
-                const submitInfoContent = document.getElementById('submitInfoContent')
-                //const keys_for_input_check = ['estimated_time', 'memory', 'shared_kernels']
-
-
-                submit.addEventListener("click", e => {
-                    fillInputValues();
-                    submitValuesList.deleteRestartFiles = deleteRestartFiles;
-                    messageToShow = checkValues();
-                    showSubmitInfo(messageToShow);
-                    hideInfo()
-                });
-
-                function checkValues() {
-                    errors = [];
-                    valuesForCheck.forEach((item, index) => {
-                        if (item.value
-                            == "" || isNaN(Number(item.value))) {
-                            errors[index] = item.id;
-                        }
-                    })
-
-                    if (errors.length > 0) {
-                        errors.unshift("Error, following inputs must be numbers:");
-                        text = errors;
-                    }
-                    else {
-                        text = ['Task was submited.']
-                    }
-                    return text
-                };
-
-                function fillInputValues() {
-                    inputList.forEach(item => {
-                        const key = item.id;
-                        const value = item.value;
-                        submitValuesList[key] = value;
-                    });
-
-                }
-
-                function showSubmitInfo(text) {
-                    submitInfo.classList.remove('is-hidden');
-                    text.forEach(item => {
-                        const newMessage = document.createElement('p');
-                        newMessage.textContent = item;
-                        submitInfoContent.appendChild(newMessage);
-                    })
-
-                }
-
-                function hideInfo() {
-                    closeButton.addEventListener("click", e => {
-                        submitInfo.classList.add('is-hidden');
-                        submitInfoContent.innerHTML = '';
-                    })
-                };
-
-
-
-
-
-            </script>
         </div>
 
 
 
 
 
+        <!---------------------------------------------------------------------------------->
+        <!------------------------------------JavaScript  ---------------------------------->
+        <!---------------------------------------------------------------------------------->
+
+        <script>
+            // list of files - in future from Python
+            InputFileList = ['C:\\Dokumenty', 'C:\\Dokumenty\\Cars\\'];
+
+
+
+            //---------------check button for deleting restart files------------------------------//
+            let deleteRestartFiles = false;
+            const check_buttons = document.querySelectorAll("#deleteRestartFiles input");
+            check_buttons.forEach(item => {
+                item.addEventListener("change", e => {
+                    if (item.value === 'true')
+                        deleteRestartFiles = true;
+                    else (deleteRestartFiles = false);
+                });
+            });
+
+
+            //-------------------- Creation of file list of potencial input files ---------------//
+            let selected_input_file = null;
+            InputFileList.forEach((el, index) => {
+                const item = document.getElementById("selectWorkingDir");
+                const newListItem = document.createElement("option");
+                newListItem.textContent = el;
+                if (index === 0) {
+                    selected_input_file = newListItem.value
+                }
+                item.appendChild(newListItem);
+            })
+            const inputFile = document.getElementById("selectWorkingDir");
+            inputFile.addEventListener("change", e => {
+                selected_input_file = inputFile.value;
+            });
+
+
+            // --------------------- Creation of dictionary for submit parameters------------------///
+
+            let submitValuesList = {};
+            const submit = document.getElementById("submit");
+            const inputList = document.querySelectorAll('.submit_value');
+            const valuesForCheck = document.querySelectorAll('.number');
+            const submitInfo = document.getElementById("submitInfo");
+            const closeButton = document.getElementById("closeButton");
+            const submitInfoContent = document.getElementById('submitInfoContent')
+            //const keys_for_input_check = ['estimated_time', 'memory', 'shared_kernels']
+
+
+            submit.addEventListener("click", e => {
+                fillInputValues();
+                submitValuesList.deleteRestartFiles = deleteRestartFiles;
+                messageToShow = checkValues();
+                showSubmitInfo(messageToShow);
+                hideInfo()
+            });
+
+            function checkValues() {
+                errors = [];
+                valuesForCheck.forEach((item, index) => {
+                    if (item.value
+                        == "" || isNaN(Number(item.value))) {
+                        errors[index] = item.id;
+                    }
+                })
+
+                if (errors.length > 0) {
+                    errors.unshift("Error, following inputs must be numbers:");
+                    text = errors;
+                }
+                else {
+                    text = ['Task was submited.']
+                }
+                return text
+            };
+
+            function fillInputValues() {
+                inputList.forEach(item => {
+                    const key = item.id;
+                    const value = item.value;
+                    submitValuesList[key] = value;
+                });
+
+            }
+
+            function showSubmitInfo(text) {
+                submitInfo.classList.remove('is-hidden');
+                text.forEach(item => {
+                    const newMessage = document.createElement('p');
+                    newMessage.textContent = item;
+                    submitInfoContent.appendChild(newMessage);
+                })
+
+            }
+
+            function hideInfo() {
+                closeButton.addEventListener("click", e => {
+                    submitInfo.classList.add('is-hidden');
+                    submitInfoContent.innerHTML = '';
+                })
+            };
+
+
+
+
+
+        </script>
+
+
+
+
+
+
     </article>
+
     <script>
 
         class Tab {

@@ -1,10 +1,10 @@
 const memory_chart = document.getElementById("memory_chart");
 
-max_memory = [220, 220, 490, 490, 670, 670];
-used_memory = [65, 59, 80, 81, 400, 55];
+max_memory = [220, 220, 220, 220];
+used_memory = [65, 59, 80, 81];
 rest_memory = max_memory.map((x, i) => x - used_memory[i]);
 
-const labels_memory = ['Node 01', 'Node 02', 'Node 03', 'Node 04', 'Node 08', 'Node 09'];
+const labels_memory = ['Word', 'Powerpoint', 'Exce', 'Total'];
 
 const data_used_memory = {
     labels: labels_memory,
