@@ -18,10 +18,11 @@ class TaskInstance(models.Model):
 
 
 class Program(models.Model):
-    program = models.CharField(max_length=50)
+    name = models.CharField(max_length=50)
+    slug = models.SlugField(max_length=50, unique=True)
 
     def __str__(self):
-        return f"{self.program}"
+        return f"{self.name}"
 
 
 class SystemResources(models.Model):

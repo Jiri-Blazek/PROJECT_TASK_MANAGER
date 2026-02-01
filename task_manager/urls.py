@@ -3,11 +3,17 @@ from django.http import HttpResponse
 from django.shortcuts import render
 
 
-def task_manager(request):
+def overview(request):
     print(request.GET)
-    return render(request, "task_manager/task_manager.html")
+    return render(request, "task_manager/overview.html")
+
+
+def program(request, **kwargs):
+    print(kwargs)
+    return HttpResponse("test page" + request.path)
 
 
 urlpatterns = [
-    path("task_manager/", task_manager),
+    path("tasks/overview/", overview),
+    path("tasks/<slug:program_name>/", program),
 ]

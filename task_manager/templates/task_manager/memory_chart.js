@@ -4,7 +4,7 @@ max_memory = [220, 220, 220, 220];
 used_memory = [65, 59, 80, 81];
 rest_memory = max_memory.map((x, i) => x - used_memory[i]);
 
-const labels_memory = ['Word', 'Powerpoint', 'Exce', 'Total'];
+const labels_memory = ['Word', 'Powerpoint', 'Excel', 'Total'];
 
 const data_used_memory = {
     labels: labels_memory,

@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Task Manager</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
+
+</head>
+<link rel="stylesheet" href="style.css">
+
+<body>
+    <article class="panel is-warning">
+        <p class="panel-heading" style="text-align: center;">Tasks Manager</p>
+        <p class="panel-tabs">
+            <a href="overview.html" class="is-active">Overview</a>
+            <a href="word.html">Word</a>
+            <a href="excel.html">Excel</a>
+            <a href="powerpoint.html">Powerpoint</a>
+        </p>
+
+        <script src="https://cdn.jsdelivr.net/npm/chart.js">
+        </script>
+
+        <!------------------------------------------------------------------------------------------------>
+        <!------------------------------ Table with running jobs------------------------------------------>
+        <!------------------------------------------------------------------------------------------------>
+
+        <div id="overview" class="panel-block">
+
+
+
+            <table class="table is-bordered" id="runningJobsTable">
+                <tbody>
+
+                    <tr class="tableHead">
+                        <th></th>
+                        <th></th>
+                        <th>
+                            <div class="th-center">
+                                <p>Job ID</p>
+                            </div>
+                        </th>
+                        <th>
+                            <div class="th-center">
+                                <p>User</p>
+                                <div class="select is-warning is-small">
+                                    <select id="userFilter" style="max-width: 4rem; border-color: lightgray;">
+                                        <option>All</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </th>
+                        <th>
+                            <div class="th-center">
+                                <p> Name</p>
+                            </div>
+                        </th>
+                        <th>
+                            <div class="th-center">
+                                <p>Program</p>
+                                <div class="select is-warning is-small">
+                                    <select id="programFilter" style="max-width: 4rem; border-color: lightgray;">
+                                        <option>All</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </th>
+                        <th>
+                            <div class="th-center">
+                                <p>Running time </p>
+                            </div>
+                        </th>
+                        <th>
+                            <div class="th-center">
+                                <p>Start time</p>
+                            </div>
+                        </th>
+                        <th>
+                            <div class="th-center">
+                                <p>Time limit</p>
+                            </div>
+                        </th>
+                        <th>
+                            <div class="th-center">
+                                <p>Used CPUs</p>
+                            </div>
+                        </th>
+                        <th>
+                            <div class="th-center">
+                                <p> Used memory</p>
+                            </div>
+                        </th>
+
+                    </tr>
+                    <tr>
+                        <td><button class="button is-small table-button getDir">Get dir.</button></td>
+                        <td><button class="button is-small table-button killJob">Kill</button></td>
+                        <td class="tableJobID">1155</td>
+                        <td class="tableUser">Jiri</td>
+                        <td class="tableName">Crash-front</td>
+                        <td class="program">Word</td>
+                        <td class="runningTime">0:25</td>
+                        <td class="startTime">2025-11-27-16:25</td>
+                        <td class="timeLimit">15:00:00</td>
+                        <td class="cpus">16</td>
+                        <td class="minMemory">250</td>
+
+                    </tr>
+
+                    <tr>
+                        <td><button class="button is-small table-button getDir">Get dir.</button></td>
+                        <td><button class="button is-small table-button killJob">Kill</button></td>
+                        <td class="tableJobID">15</td>
+                        <td class="tableUser">Jiri</td>
+                        <td class="tableName">Crash-side</td>
+                        <td class="program">Excel</td>
+                        <td class="runningTime">0:25</td>
+                        <td class="startTime">2025-11-27-16:25</td>
+                        <td class="timeLimit">15:00:00</td>
+                        <td class="cpus">16</td>
+                        <td class="minMemory">250</td>
+                    </tr>
+
+                    <tr>
+                        <td><button class="button is-small table-button getDir">Get dir.</button></td>
+                        <td><button class="button is-small table-button killJob">Kill</button></td>
+                        <td class="tableJobID">1821</td>
+                        <td class="tableUser">Pavel</td>
+                        <td class="tableName">Crash-rear</td>
+                        <td class="program">Powerpoint</td>
+                        <td class="tableRunningTime">0:25</td>
+                        <td class="tableStartTime">2025-11-27-16:25</td>
+                        <td class="tableTimeLimit">15:00:00</td>
+                        <td class="tableCpus">16</td>
+                        <td class="tableMinMemory">250</td>
+                    </tr>
+
+
+                </tbody>
+            </table>
+
+            <article class="message is-warning is-hidden info" id="killJobInfo">
+                <div class="message-header">
+                    <p>Info</p>
+                </div>
+                <div class="message-body">
+                    <div id="killContent">
+
+                    </div>
+                    <div class="buttons" style="display: flex; justify-content: center;padding-top: 2rem; ">
+
+                        <button class="button is-warning" id="yesButton">YES</button>
+                        <button class="button is-warning" id="cancelButton">NO</button>
+                    </div>
+                </div>
+            </article>
+
+            <script>
+                const tableUsers = document.querySelectorAll(".tableUser");
+                const userList = document.getElementById("userFilter")
+                const runningJobsTable = document.getElementById("runningJobsTable");
+                const tableRows = runningJobsTable.getElementsByTagName("tr");
+
+                const tablePrograms = document.querySelectorAll(".program");
+                const programList = document.getElementById("programFilter");
+
+                generateProgramList();
+
+                function generateProgramList() {
+                    let programsList = [];
+
+                    tablePrograms.forEach((el) => {
+                        if (!programsList.includes(el.textContent)) {
+                            programsList.push(el.textContent);
+
+                            const newListItem = document.createElement("option");
+                            newListItem.textContent = el.textContent;
+                            programList.appendChild(newListItem);
+                        }
+                    });
+                }
+
+
+
+                generateUserList()
+
+                //-------------------- Creation of user list ---------------//
+                function generateUserList() {
+                    usersList = [];
+                    tableUsers.forEach((el, index) => {
+                        if (!usersList.includes(el.textContent)) {
+                            usersList[index] = el.textContent;
+                            //console.log(list_of_users)
+                            const newListItem = document.createElement("option");
+                            newListItem.textContent = el.textContent;
+                            userList.appendChild(newListItem);
+                        }
+                    })
+                }
+
+                //-------------------- Filter by user ---------------//
+                function filterTable() {
+                    const userValue = userList.value;
+                    const programValue = programList.value;
+
+                    for (let i = 1; i < tableRows.length; i++) {
+                        const userCell = tableRows[i].querySelector(".tableUser");
+                        const programCell = tableRows[i].querySelector(".program");
+
+                        const user = userCell.textContent;
+                        const program = programCell.textContent;
+
+                        let visible = true;
+
+                        if (userValue !== 'All' && user !== userValue) {
+                            visible = false;
+                        }
+
+                        if (programValue !== 'All' && program !== programValue) {
+                            visible = false;
+                        }
+
+                        tableRows[i].style.display = visible ? "" : "none";
+                    }
+                }
+                userFilter.addEventListener("change", filterTable);
+                programFilter.addEventListener("change", filterTable);
+
+
+
+                //-------------------- Kill job ---------------//
+
+                const allKillJobButtons = document.querySelectorAll('.killJob');
+                const allGetDirButtons = document.querySelectorAll('.getDir');
+                const allTableButtons = document.querySelectorAll('#runningJobsTable button');
+                const killJobInfo = document.getElementById("killJobInfo");
+                const killContent = document.getElementById("killContent");
+                const yesButton = document.getElementById("yesButton");
+                const cancelButton = document.getElementById("cancelButton");
+
+                //-------------------- all ---------------//
+                allTableButtons.forEach((item, index) => {
+                    item.addEventListener('click', e => {
+                        jobId = item.closest('tr').children[2].innerText;
+                        if (item.classList.contains("killJob")) {
+                            answer = killJobWarning(jobId)
+                        }
+                        else {
+                            getDir(jobId)
+                        }
+                    });
+                })
+                function killJobWarning(jobId) {
+                    answer = false;
+                    //console.log('killnu job ' + jobId);
+                    killJobInfo.classList.remove('is-hidden');
+                    const newMessage = document.createElement('p');
+                    newMessage.textContent = 'Do you really want to kill job with ID ' + jobId + '?';
+                    killContent.appendChild(newMessage);
+                    answer = hideWarning();
+                    return answer
+                }
+                function getDir(jobId) {
+                    console.log('otevru slozku jobu ' + jobId)
+                }
+
+                function hideWarning() {
+                    cancelButton.addEventListener("click", e => {
+                        killJobInfo.classList.add('is-hidden');
+                        killContent.innerHTML = '';
+                        return false
+                    });
+                    yesButton.addEventListener("click", e => {
+                        killJobInfo.classList.add('is-hidden');
+                        killContent.innerHTML = '';
+                        return true
+                    });
+                };
+
+
+
+
+
+            </script>
+
+            <!------------------------------------------------------------------------------------------------>
+            <!------------------------------  Memory chart---------------------------------------------------->
+            <!------------------------------------------------------------------------------------------------>
+            <div class="chartArea">
+                <div>
+                    <canvas id="memory_chart"></canvas>
+                </div>
+                <div>
+                    <canvas id="cpus_chart"></canvas>
+                </div>
+
+                <script src="cpus_chart.js"></script>
+                <script src="memory_chart.js"></script>
+                <script>
+                    new Chart(memory_chart, memory_chart_config);
+                    new Chart(cpus_chart, cpus_chart_config);
+                </script>
+
+            </div>
+        </div>
+    </article>
+</body>
+
+</html>
