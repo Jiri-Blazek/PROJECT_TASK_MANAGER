@@ -1,19 +1,9 @@
 from django.urls import path
-from django.http import HttpResponse
-from django.shortcuts import render
-
-
-def overview(request):
-    print(request.GET)
-    return render(request, "task_manager/overview.html")
-
-
-def program(request, **kwargs):
-    print(kwargs)
-    return HttpResponse("test page" + request.path)
+from task_manager import views
 
 
 urlpatterns = [
-    path("tasks/overview/", overview),
-    path("tasks/<slug:program_name>/", program),
+    path("tasks/overview/", views.overview_view),  # overview_view
+    # path("tasks/<slug:program_name>/", views.program_view),  # program_view
+    path("tasks/word/", views.program_create_view),
 ]

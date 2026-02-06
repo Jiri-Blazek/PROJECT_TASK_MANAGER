@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Task Manager</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
+
+</head>
+<link rel="stylesheet" href="style.css">
+
+<body>
+    <article class="panel is-warning">
+        <p class="panel-heading" style="text-align: center;">Tasks Manager</p>
+        <p class="panel-tabs">
+            <a href="overview.html" class="is-active">Overview</a>
+            <a href="word.html">Word</a>
+            <a href="excel.html">Excel</a>
+            <a href="powerpoint.html">Powerpoint</a>
+        </p>
+
+        {%block base_content%}
+        {%endblock%}
+
+
+    </article>
+</body>
+
+</html>

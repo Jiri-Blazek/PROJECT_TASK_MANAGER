@@ -1,107 +1,104 @@
-css
-        
-	#overview {
+css #overview {
     display: flex;
     flex-direction: column;
     align-items: center;
 }
 
 
-	.panel-block {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start
-        }
+.panel-block {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start
+}
 
-        .panel-block canvas {
-            min-height: 300px;
-            min-width: 500px;
-
-
-        }
+.panel-block canvas {
+    min-height: 300px;
+    min-width: 500px;
 
 
-
-        .selectionBlock {
-            padding-left: 5rem;
-            padding-top: 0.25rem;
-            padding-bottom: 0.25rem;
-            display: flex;
-            align-items: center;
-            min-width: 18rem;
-
-        }
-
-        .selectionBlock>label {
-            min-width: 18rem;
-        }
-
-        .selectionBlock>button {
-            min-width: 18rem;
-            margin-left: 18rem;
-        }
-
-        .selectionBlock>div>select {
-            max-width: none;
-            min-width: 18rem;
-
-        }
-
-        div>input {
-            display: flex;
-            min-width: 18rem;
-        }
+}
 
 
-        .description {
-            margin-left: 1rem;
-            min-width: 60rem;
-        }
 
-        .info {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            z-index: 999;
+.selectionBlock {
+    padding-left: 5rem;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+    display: flex;
+    align-items: center;
+    min-width: 18rem;
+
+}
+
+.selectionBlock>label {
+    min-width: 18rem;
+}
+
+.selectionBlock>button {
+    min-width: 18rem;
+    margin-left: 18rem;
+}
+
+.selectionBlock>div>select {
+    max-width: none;
+    min-width: 18rem;
+
+}
+
+div>input {
+    display: flex;
+    min-width: 18rem;
+}
 
 
-        }
+.description {
+    margin-left: 1rem;
+    min-width: 60rem;
+}
 
-        .table-button {
-            background-color: lightgrey;
-        }
+.info {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 999;
 
-        #overview {
-            display: flex;
-            align-items: center;
-        }
 
-        td,
-        tr,
-        th {
-            text-align: center;
-        }
+}
 
-        .th-center {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            width: 100%;
-            /* ← KLÍČOVÉ */
-        }
+.table-button {
+    background-color: lightgrey;
+}
 
-        .chartArea {
-            display: flex;
-            justify-content: space-around;
-        }
+#overview {
+    display: flex;
+    align-items: center;
+}
 
-        .tableHead {
-            background-color: lightgray;
-        }
+td,
+tr,
+th {
+    text-align: center;
+}
 
-        #runningJobsTable,
-        .chartArea {
-            width: max-content;
-            width: 100%;
-        }
+.th-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+}
+
+.chartArea {
+    display: flex;
+    justify-content: space-around;
+}
+
+.tableHead {
+    background-color: lightgray;
+}
+
+#runningJobsTable,
+.chartArea {
+    width: max-content;
+    width: 100%;
+}

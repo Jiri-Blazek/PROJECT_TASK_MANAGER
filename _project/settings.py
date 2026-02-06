@@ -42,7 +42,13 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "task_manager",
     "debug_toolbar",
+    "crispy_forms",
+    "crispy_bulma",
 ]
+
+CRISPY_ALLOWED_TEMPLATE_PACKS = ("bulma",)
+
+CRISPY_TEMPLATE_PACK = "bulma"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

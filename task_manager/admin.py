@@ -7,6 +7,5 @@ admin.site.register(
         models.TaskInstance,
         models.Program,
         models.SystemResources,
-        models.Schedule,
     ]
 )

@@ -1,6 +1,5 @@
 const program = document.body.dataset.program;
 
-// simulace dat z backendu
 const INPUT_FILE_LIST = {
     word: ['C:\\Dokumenty', 'C:\\Dokumenty\\Cars\\'],
     excel: ['C:\\Dokumenty', 'C:\\Excel\\'],
