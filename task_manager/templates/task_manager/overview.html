@@ -12,8 +12,8 @@
         <tbody>
 
             <tr class="tableHead">
-                <th></th>
-                <th></th>
+                <th>Get into<br> Job Directory</th>
+                <th>Kill the Job</th>
                 <th>
                     <div class="th-center">
                         <p>Job ID</p>
@@ -52,7 +52,7 @@
                 </th>
                 <th>
                     <div class="th-center">
-                        <p>Time limit</p>
+                        <p>End time</p>
                     </div>
                 </th>
                 <th>
@@ -80,15 +80,34 @@
             </tr>
             {% for task in tasksList %}
             <tr>
-                <td><button class="button is-small table-button getDir">Get dir.</button></td>
-                <td><button class="button is-small table-button killJob">Kill</button></td>
+                <!--<td><button class="button is-small table-button getDir">Get dir.</button></td>-->
+                <td>
+                    <button class="button is-small table-button getDir" data-task-id="{{ task.id }}">
+                        Get dir.
+                    </button>
+                </td>
+                <td>
+                    {% if task.state == "RUNNING" %}
+                    <form method="post" action="{% url 'kill_job' task.pid %}">
+                        {% csrf_token %}
+                        <button class="button is-small table-button">Kill</button>
+                    </form>
+                    {% else %}
+                    Not Available
+                    {% endif %}
+                </td>
+                <!--<td><button class="button is-small table-button killJob">Kill</button></td>-->
                 <td class="tableJobID">{{task.pid}}</td>
                 <td class="tableUser">{{task.user}}</td>
                 <td class="tableName">{{task.file_name}}</td>
                 <td class="program">{{task.program}}</td>
-                <td class="startTime">{{task.start_time}}</td>
-                <td class="timeLimit">{{task.end_time}}</td>
-                <td class="state">Running</td>
+                <td class="startTime">
+                    {{ task.start_time|date:"d.m.Y H:i" }}
+                </td>
+                <td class="startTime">
+                    {{ task.end_time|date:"d.m.Y H:i" }}
+                </td>
+                <td class="state">{{task.state}}</td>
                 <td class="runningTime">0:25</td>
                 <td class="cpus">16</td>
                 <td class="minMemory">250</td>
@@ -187,7 +206,7 @@
             })
         }
 
-        //-------------------- Filter by user ---------------//
+        //-------------------- Filter by user and program ---------------//
         function filterTable() {
             const userValue = userList.value;
             const programValue = programList.value;
@@ -220,14 +239,13 @@
         //-------------------- Kill job ---------------//
 
         const allKillJobButtons = document.querySelectorAll('.killJob');
-        const allGetDirButtons = document.querySelectorAll('.getDir');
+
         const allTableButtons = document.querySelectorAll('#runningJobsTable button');
         const killJobInfo = document.getElementById("killJobInfo");
         const killContent = document.getElementById("killContent");
         const yesButton = document.getElementById("yesButton");
         const cancelButton = document.getElementById("cancelButton");
 
-        //-------------------- all ---------------//
         allTableButtons.forEach((item, index) => {
             item.addEventListener('click', e => {
                 jobId = item.closest('tr').children[2].innerText;
@@ -239,6 +257,8 @@
                 }
             });
         })
+        //-------------------- Kill Job  Warning---------------//
+
         function killJobWarning(jobId) {
             answer = false;
             //console.log('killnu job ' + jobId);
@@ -249,10 +269,6 @@
             answer = hideWarning();
             return answer
         }
-        function getDir(jobId) {
-            console.log('otevru slozku jobu ' + jobId)
-        }
-
         function hideWarning() {
             cancelButton.addEventListener("click", e => {
                 killJobInfo.classList.add('is-hidden');
@@ -265,6 +281,24 @@
                 return true
             });
         };
+
+        //-------------------- Get Dir. ---------------//
+        const allGetDirButtons = document.querySelectorAll('.getDir');
+
+        allGetDirButtons.forEach(btn => {
+            btn.addEventListener("click", e => {
+                const taskId = btn.dataset.taskId;
+                getDir(taskId);
+            });
+        });
+
+        function getDir(taskId) {
+            window.location.href = `/tasks/open-dir/${taskId}/`;
+        }
+
+
+
+
 
 
 

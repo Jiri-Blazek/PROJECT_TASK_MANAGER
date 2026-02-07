@@ -1,0 +1,18 @@
+{% extends 'task_manager/_base.html'%}
+{% load crispy_forms_tags %}
+
+{%block base_content%}
+<form action="{{request.path}}" method="post">
+    {% csrf_token%}
+    <div style="max-width: 500px; margin: 0 auto;">
+        {{form|crispy}}
+
+
+        <button type="submit" class="button is-warning">Submit</button>
+    </div>
+</form>
+
+
+
+
+{%endblock%}

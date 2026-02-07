@@ -13,12 +13,16 @@
 <body>
     <article class="panel is-warning">
         <p class="panel-heading" style="text-align: center;">Tasks Manager</p>
+
         <p class="panel-tabs">
-            <a href="overview.html" class="is-active">Overview</a>
-            <a href="word.html">Word</a>
-            <a href="excel.html">Excel</a>
-            <a href="powerpoint.html">Powerpoint</a>
+            {% for prog in programs %}
+            <a href="{% url 'program_view' program_name=prog.slug %}"
+                class="{% if program_name == prog.slug %}is-active{% endif %}">
+                {{ prog.name }}
+            </a>
+            {% endfor %}
         </p>
+
 
         {%block base_content%}
         {%endblock%}
