@@ -36,14 +36,14 @@ class TaskForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Default start_time = nyní, end_time = nyní + 1 hodina
-        if not self.instance.pk:  # pouze nové záznamy
+        # Default start_time = now+1hour
+        if not self.instance.pk:
             now = timezone.localtime()
-            # Převedeme na formát vhodný pro datetime-local input
+            # datetime-local input
             fmt = "%Y-%m-%dT%H:%M"
             self.fields["start_time"].initial = now.strftime(fmt)
             self.fields["end_time"].initial = (now + timedelta(hours=1)).strftime(fmt)
 
-        # Default working_directory (pokud není vyplněno)
+        # Default working_directory
         if not self.fields["working_directory"].initial:
             self.fields["working_directory"].initial = os.path.expanduser("~")

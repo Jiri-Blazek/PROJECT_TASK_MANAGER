@@ -9,11 +9,11 @@ from pathlib import Path
 
 import os, signal
 import subprocess
-import win32com.client
-import win32process
-import win32gui
+from openpyxl import Workbook
+from docx import Document
+from pptx import Presentation
 
-from django.http import JsonResponse
+# from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 import psutil
 from django.http import HttpResponseForbidden
@@ -54,9 +54,6 @@ def program_create_view(request, program_name):
             instance.save()
             instance.pid = run_task_instance(instance)
             instance.save()
-            print(
-                f"Uživatel {request.user} spustil {instance.file_name} s PID {instance.pid}"
-            )
             return redirect("/tasks/overview")
     else:
         form = TaskForm()
@@ -96,26 +93,26 @@ def run_task_instance(instance):
         ),
     }
 
-    program_info = PROGRAM_PATHS.get(slug)
-    if not program_info:
-        raise ValueError(f"Unsupported program slug: {slug}")
+    program_path, extension = PROGRAM_PATHS[slug]
 
-    program_path, extension = program_info
-
-    # Absolutní cesta k souboru
     if not file_name.lower().endswith(extension):
-        file_name_with_ext = file_name + extension
-    else:
-        file_name_with_ext = file_name
+        file_name += extension
 
-    file_path = os.path.join(working_dir, file_name_with_ext)
+    file_path = os.path.join(working_dir, file_name)
 
-    # Vytvoření prázdného souboru, pokud neexistuje
     if not os.path.exists(file_path):
-        with open(file_path, "w", encoding="utf-8") as f:
-            pass
+        if slug == "excel":
+            wb = Workbook()
+            wb.save(file_path)
 
-    # PowerShell příkaz pro spuštění programu s tímto souborem
+        elif slug == "word":
+            doc = Document()
+            doc.save(file_path)
+
+        elif slug == "powerpoint":
+            pres = Presentation()
+            pres.save(file_path)
+
     cmd = (
         f"Start-Process -FilePath '{program_path}' "
         f"-ArgumentList '{file_path} {additional_params}' "
@@ -131,11 +128,10 @@ def run_task_instance(instance):
             check=True,
         )
 
-        pid = int(result.stdout.strip())
-        return pid
+        return int(result.stdout.strip())
 
     except Exception as e:
-        print("Chyba při spouštění programu:", e)
+        print("Error during start of program:", e)
         return None
 
 
@@ -171,13 +167,13 @@ def kill_job_view(request, pid):
         task.save()
 
     except psutil.NoSuchProcess:
-        # proces už neběží – bereme jako finished
+        # proces už neběží –  finished
         task.state = "FINISHED"
         task.save()
 
     except psutil.AccessDenied:
         task.state = "FAILED"
         task.save()
-        return HttpResponseForbidden("Přístup odepřen OS.")
+        return HttpResponseForbidden("Acces denied by OS.")
 
     return redirect("program_view", program_name="overview")

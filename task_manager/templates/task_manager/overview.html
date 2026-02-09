@@ -56,9 +56,16 @@
                     </div>
                 </th>
                 <th>
+
                     <div class="th-center">
-                        <p>State </p>
+                        <p>State</p>
+                        <div class="select is-warning is-small">
+                            <select id="stateFilter" style="max-width: 4rem; border-color: lightgray;">
+                                <option>All</option>
+                            </select>
+                        </div>
                     </div>
+
                 </th>
                 <th>
                     <div class="th-center">
@@ -88,9 +95,11 @@
                 </td>
                 <td>
                     {% if task.state == "RUNNING" %}
-                    <form method="post" action="{% url 'kill_job' task.pid %}">
+                    <form method="post" action="{% url 'kill_job' task.pid %}" class="kill-form">
                         {% csrf_token %}
-                        <button class="button is-small table-button">Kill</button>
+                        <button type="button" class="button is-small table-button killJob" data-pid="{{ task.pid }}">
+                            Kill
+                        </button>
                     </form>
                     {% else %}
                     Not Available
@@ -114,34 +123,8 @@
 
             </tr>
             {% endfor %}
-            <!--
-            <tr>
-                <td><button class="button is-small table-button getDir">Get dir.</button></td>
-                <td><button class="button is-small table-button killJob">Kill</button></td>
-                <td class="tableJobID">15</td>
-                <td class="tableUser">Jiri</td>
-                <td class="tableName">Crash-side</td>
-                <td class="program">Excel</td>
-                <td class="runningTime">0:25</td>
-                <td class="startTime">2025-11-27-16:25</td>
-                <td class="timeLimit">15:00:00</td>
-                <td class="cpus">16</td>
-                <td class="minMemory">250</td>
-            </tr>
 
-            <tr>
-                <td><button class="button is-small table-button getDir">Get dir.</button></td>
-                <td><button class="button is-small table-button killJob">Kill</button></td>
-                <td class="tableJobID">1821</td>
-                <td class="tableUser">Pavel</td>
-                <td class="tableName">Crash-rear</td>
-                <td class="program">Powerpoint</td>
-                <td class="tableRunningTime">0:25</td>
-                <td class="tableStartTime">2025-11-27-16:25</td>
-                <td class="tableTimeLimit">15:00:00</td>
-                <td class="tableCpus">16</td>
-                <td class="tableMinMemory">250</td>
-            </tr>-->
+
 
 
         </tbody>
@@ -166,14 +149,21 @@
     <script>
         const tableUsers = document.querySelectorAll(".tableUser");
         const userList = document.getElementById("userFilter")
-        const runningJobsTable = document.getElementById("runningJobsTable");
-        const tableRows = runningJobsTable.getElementsByTagName("tr");
 
         const tablePrograms = document.querySelectorAll(".program");
         const programList = document.getElementById("programFilter");
 
+        const tableStates = document.querySelectorAll(".state");
+        const stateList = document.getElementById("stateFilter");
+
+
+        const runningJobsTable = document.getElementById("runningJobsTable");
+        const tableRows = runningJobsTable.getElementsByTagName("tr");
+
+
         generateProgramList();
 
+        //-------------------- Creation of program list ---------------//
         function generateProgramList() {
             let programsList = [];
 
@@ -198,10 +188,26 @@
             tableUsers.forEach((el, index) => {
                 if (!usersList.includes(el.textContent)) {
                     usersList[index] = el.textContent;
-                    //console.log(list_of_users)
                     const newListItem = document.createElement("option");
                     newListItem.textContent = el.textContent;
                     userList.appendChild(newListItem);
+                }
+            })
+        }
+
+        //-------------------- Creation of state list ---------------//
+        generateStateList();
+
+        function generateStateList() {
+            statesList = [];
+
+            tableStates.forEach((el, index) => {
+                if (!statesList.includes(el.textContent)) {
+                    statesList[index] = el.textContent;
+                    console.log(stateList)
+                    const newListItem = document.createElement("option");
+                    newListItem.textContent = el.textContent;
+                    stateList.appendChild(newListItem);
                 }
             })
         }
@@ -210,13 +216,16 @@
         function filterTable() {
             const userValue = userList.value;
             const programValue = programList.value;
+            const stateValue = stateList.value;
 
             for (let i = 1; i < tableRows.length; i++) {
                 const userCell = tableRows[i].querySelector(".tableUser");
                 const programCell = tableRows[i].querySelector(".program");
+                const stateCell = tableRows[i].querySelector(".state");
 
                 const user = userCell.textContent;
                 const program = programCell.textContent;
+                const state = stateCell.textContent;
 
                 let visible = true;
 
@@ -228,59 +237,62 @@
                     visible = false;
                 }
 
+                if (stateValue !== 'All' && state !== stateValue) {
+                    visible = false;
+                }
+
                 tableRows[i].style.display = visible ? "" : "none";
             }
         }
         userFilter.addEventListener("change", filterTable);
         programFilter.addEventListener("change", filterTable);
+        stateFilter.addEventListener("change", filterTable);
 
 
 
         //-------------------- Kill job ---------------//
 
-        const allKillJobButtons = document.querySelectorAll('.killJob');
-
-        const allTableButtons = document.querySelectorAll('#runningJobsTable button');
         const killJobInfo = document.getElementById("killJobInfo");
         const killContent = document.getElementById("killContent");
         const yesButton = document.getElementById("yesButton");
         const cancelButton = document.getElementById("cancelButton");
 
-        allTableButtons.forEach((item, index) => {
-            item.addEventListener('click', e => {
-                jobId = item.closest('tr').children[2].innerText;
-                if (item.classList.contains("killJob")) {
-                    answer = killJobWarning(jobId)
-                }
-                else {
-                    getDir(jobId)
-                }
-            });
-        })
-        //-------------------- Kill Job  Warning---------------//
+        let currentKillForm = null;
+        document.querySelectorAll(".killJob").forEach(btn => {
+            btn.addEventListener("click", e => {
+                e.preventDefault();
 
-        function killJobWarning(jobId) {
-            answer = false;
-            //console.log('killnu job ' + jobId);
-            killJobInfo.classList.remove('is-hidden');
-            const newMessage = document.createElement('p');
-            newMessage.textContent = 'Do you really want to kill job with ID ' + jobId + '?';
-            killContent.appendChild(newMessage);
-            answer = hideWarning();
-            return answer
+                const pid = btn.dataset.pid;
+                currentKillForm = btn.closest("form");
+
+                showKillWarning(pid);
+            });
+        });
+
+        //-------------------- Kill Job  Warning---------------//
+        function showKillWarning(pid) {
+            killContent.innerHTML = '';
+            killJobInfo.classList.remove("is-hidden");
+
+            const msg = document.createElement("p");
+            msg.textContent = `Do you really want to kill job with ID ${pid}?`;
+            killContent.appendChild(msg);
         }
-        function hideWarning() {
-            cancelButton.addEventListener("click", e => {
-                killJobInfo.classList.add('is-hidden');
-                killContent.innerHTML = '';
-                return false
-            });
-            yesButton.addEventListener("click", e => {
-                killJobInfo.classList.add('is-hidden');
-                killContent.innerHTML = '';
-                return true
-            });
-        };
+
+        // NO
+        cancelButton.addEventListener("click", () => {
+            killJobInfo.classList.add("is-hidden");
+            killContent.innerHTML = '';
+            currentKillForm = null;
+        });
+
+        // YES
+        yesButton.addEventListener("click", () => {
+            if (currentKillForm) {
+                currentKillForm.submit();
+            }
+        });
+
 
         //-------------------- Get Dir. ---------------//
         const allGetDirButtons = document.querySelectorAll('.getDir');
