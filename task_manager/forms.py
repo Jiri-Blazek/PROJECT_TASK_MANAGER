@@ -36,13 +36,13 @@ class TaskForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Default start_time = now+1hour
+        # Default start_time = now+5 minutes
         if not self.instance.pk:
             now = timezone.localtime()
             # datetime-local input
             fmt = "%Y-%m-%dT%H:%M"
             self.fields["start_time"].initial = now.strftime(fmt)
-            self.fields["end_time"].initial = (now + timedelta(hours=1)).strftime(fmt)
+            self.fields["end_time"].initial = (now + timedelta(minutes=5)).strftime(fmt)
 
         # Default working_directory
         if not self.fields["working_directory"].initial:

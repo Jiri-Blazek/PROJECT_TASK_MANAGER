@@ -13,6 +13,7 @@ class TaskInstance(models.Model):
         ("KILLED", "Killed"),
         ("FINISHED", "Finished"),
         ("FAILED", "Failed"),
+        ("WAITING", "Waiting"),
     ]
 
     pid = models.PositiveIntegerField(blank=True, null=True)

@@ -12,8 +12,12 @@ import subprocess
 from openpyxl import Workbook
 from docx import Document
 from pptx import Presentation
+import time
+from django.utils import timezone
+from datetime import datetime
+import threading
 
-# from django.http import JsonResponse
+
 from django.views.decorators.http import require_POST
 import psutil
 from django.http import HttpResponseForbidden
@@ -24,6 +28,11 @@ def overview_view(request):
     programs = get_programs_for_tabs()
     if request.user.groups.filter(name="Computation").exists():
         tasks = TaskInstance.objects.all()
+        for task in tasks:
+            if task.state == "RUNNING":
+                if not task.pid or not psutil.pid_exists(task.pid):
+                    task.state = "FAILED"  # Proces skončil mimo naši kontrolu
+                    task.save()
         return render(
             request,
             "task_manager/overview.html",
@@ -52,7 +61,7 @@ def program_create_view(request, program_name):
                 instance.program = program
             instance.user = request.user
             instance.save()
-            instance.pid = run_task_instance(instance)
+            instance.pid, instance.state = run_task_instance(instance)
             instance.save()
             return redirect("/tasks/overview")
     else:
@@ -78,11 +87,15 @@ def get_programs_for_tabs():
 ########################### Run program ####################################
 
 
+# ------------------ Preparation of inputs for command line ----------------
 def run_task_instance(instance):
+
     slug = instance.program.slug
     file_name = instance.file_name
     working_dir = instance.working_directory
     additional_params = instance.additional_parameters or ""
+    start_time = instance.start_time
+    end_time = instance.end_time
 
     PROGRAM_PATHS = {
         "word": (r"C:\Program Files\Microsoft Office\Office16\WINWORD.EXE", ".docx"),
@@ -95,44 +108,93 @@ def run_task_instance(instance):
 
     program_path, extension = PROGRAM_PATHS[slug]
 
-    if not file_name.lower().endswith(extension):
-        file_name += extension
+    # Add extension to file name
+    file_name = file_name + extension
 
     file_path = os.path.join(working_dir, file_name)
 
+    # Generation of file if not exists
     if not os.path.exists(file_path):
         if slug == "excel":
             wb = Workbook()
             wb.save(file_path)
-
         elif slug == "word":
             doc = Document()
             doc.save(file_path)
-
         elif slug == "powerpoint":
             pres = Presentation()
             pres.save(file_path)
 
-    cmd = (
-        f"Start-Process -FilePath '{program_path}' "
-        f"-ArgumentList '{file_path} {additional_params}' "
-        f"-WorkingDirectory '{working_dir}' "
-        f"-PassThru | Select-Object -ExpandProperty Id"
-    )
+    # actual time
+    now = timezone.now()
 
-    try:
-        result = subprocess.run(
-            ["powershell", "-NoProfile", "-Command", cmd],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
+    # ------------------ Function for start of task ----------------
+    def start_program():
+        try:
+            cmd = (
+                f"Start-Process -FilePath '{program_path}' "
+                f"-ArgumentList '{file_path} {additional_params}' "
+                f"-WorkingDirectory '{working_dir}' "
+                f"-PassThru | Select-Object -ExpandProperty Id"
+            )
+            result = subprocess.run(
+                ["powershell", "-NoProfile", "-Command", cmd],
+                capture_output=True,
+                text=True,
+                check=True,
+            )
+            pid = int(result.stdout.strip())
 
-        return int(result.stdout.strip())
+            # set parameters of task
+            instance.pid = pid
+            instance.state = "RUNNING"
+            instance.save()
 
-    except Exception as e:
-        print("Error during start of program:", e)
-        return None
+            # stop the process based on end_time
+            if end_time:
+                delay = (end_time - timezone.now()).total_seconds()
+                if delay > 0:
+                    threading.Timer(
+                        delay, terminate_process, args=(pid, instance)
+                    ).start()
+
+            return pid
+
+        except Exception as e:
+            print("Error during start of program:", e)
+            instance.pid = None
+            instance.state = "FAILED"
+            instance.save()
+            return None
+
+    # ------------------ Function for termination of task ----------------
+    def terminate_process(pid, instance):
+        try:
+            subprocess.run(["taskkill", "/PID", str(pid), "/F"], capture_output=True)
+            instance.state = "FINISHED"
+            instance.save()
+        except Exception as e:
+            print("Error during termination:", e)
+            instance.state = "FAILED"
+            instance.save()
+
+        # ------------------ Main function ----------------
+
+    if start_time <= now:
+        # Run immediatelly
+        pid = start_program()
+        return pid, instance.state
+    else:
+        # Delayed start
+        instance.pid = None
+        instance.state = "WAITING"
+        instance.save()
+
+        # Timne to start estimation
+        delay = (start_time - now).total_seconds()
+        threading.Timer(delay, start_program).start()
+
+        return instance.pid, instance.state
 
 
 ########################### Open working directory ####################################

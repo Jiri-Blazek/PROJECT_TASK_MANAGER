@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html>
 
@@ -5,10 +6,11 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Task Manager</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.4/css/bulma.min.css">
 
+    <link rel="stylesheet" href="{% static 'task_manager/bulma.min.css'%}">
+    <link rel="stylesheet" href="{% static 'task_manager/style.css' %}">
 </head>
-<link rel="stylesheet" href="style.css">
+
 
 <body>
     <article class="panel is-warning">

@@ -1,19 +1,25 @@
 {% extends 'task_manager/_base.html'%}
+{% load static %}
+
 {%block base_content%}
 
 
 <!------------------------------------------------------------------------------------------------>
 <!------------------------------ Table with running jobs------------------------------------------>
 <!------------------------------------------------------------------------------------------------>
-<link rel="stylesheet" href="style.css">
+
 <div id="overview" class="panel-block">
 
     <table class="table is-bordered" id="runningJobsTable">
         <tbody>
 
             <tr class="tableHead">
-                <th>Get into<br> Job Directory</th>
-                <th>Kill the Job</th>
+                <th>
+                    <div class="th-center">Get into<br> Job Directory</div>
+                </th>
+                <th>
+                    <div class="th-center"> Kill the Job</div>
+                </th>
                 <th>
                     <div class="th-center">
                         <p>Job ID</p>
@@ -94,7 +100,7 @@
                     </button>
                 </td>
                 <td>
-                    {% if task.state == "RUNNING" %}
+                    {% if task.state == "RUNNING" and task.pid %}
                     <form method="post" action="{% url 'kill_job' task.pid %}" class="kill-form">
                         {% csrf_token %}
                         <button type="button" class="button is-small table-button killJob" data-pid="{{ task.pid }}">
@@ -105,7 +111,7 @@
                     Not Available
                     {% endif %}
                 </td>
-                <!--<td><button class="button is-small table-button killJob">Kill</button></td>-->
+
                 <td class="tableJobID">{{task.pid}}</td>
                 <td class="tableUser">{{task.user}}</td>
                 <td class="tableName">{{task.file_name}}</td>
@@ -157,8 +163,6 @@
         const stateList = document.getElementById("stateFilter");
 
 
-        const runningJobsTable = document.getElementById("runningJobsTable");
-        const tableRows = runningJobsTable.getElementsByTagName("tr");
 
 
         generateProgramList();
@@ -211,7 +215,7 @@
                 }
             })
         }
-
+        const tableRows = document.querySelectorAll("#runningJobsTable tbody tr");
         //-------------------- Filter by user and program ---------------//
         function filterTable() {
             const userValue = userList.value;
@@ -311,12 +315,10 @@
 
 
 
-
-
-
-
-
     </script>
+
+
+
 
     <!------------------------------------------------------------------------------------------------>
     <!------------------------------  Memory chart---------------------------------------------------->
@@ -328,9 +330,9 @@
         <div>
             <canvas id="cpus_chart"></canvas>
         </div>
-
-        <script src="cpus_chart.js"></script>
-        <script src="memory_chart.js"></script>
+        <script src="{% static 'task_manager/chart.js' %}"></script>
+        <script src="{% static 'task_manager/memory_chart.js' %}"></script>
+        <script src="{% static 'task_manager/cpus_chart.js' %}"></script>
         <script>
             new Chart(memory_chart, memory_chart_config);
             new Chart(cpus_chart, cpus_chart_config);
