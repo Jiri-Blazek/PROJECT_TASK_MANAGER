@@ -10,7 +10,7 @@
 
 <div id="overview" class="panel-block">
 
-    <table class="table is-bordered" id="runningJobsTable">
+    <table class="table is-bordered" id="runningJobsTable" style="margin-top: 1rem;">
         <tbody>
 
             <tr class="tableHead">
@@ -91,19 +91,19 @@
                 </th>
 
             </tr>
-            {% for task in tasksList %}
+            {% for entry in tasksData %}
             <tr>
-                <!--<td><button class="button is-small table-button getDir">Get dir.</button></td>-->
                 <td>
-                    <button class="button is-small table-button getDir" data-task-id="{{ task.id }}">
+                    <button class="button is-small table-button getDir" data-task-id="{{ entry.task.id }}">
                         Get dir.
                     </button>
                 </td>
                 <td>
-                    {% if task.state == "RUNNING" and task.pid %}
-                    <form method="post" action="{% url 'kill_job' task.pid %}" class="kill-form">
+                    {% if entry.task.state == "RUNNING" and entry.task.pid %}
+                    <form method="post" action="{% url 'kill_job' entry.task.pid %}" class="kill-form">
                         {% csrf_token %}
-                        <button type="button" class="button is-small table-button killJob" data-pid="{{ task.pid }}">
+                        <button type="button" class="button is-small table-button killJob"
+                            data-pid="{{ entry.task.pid }}">
                             Kill
                         </button>
                     </form>
@@ -112,21 +112,16 @@
                     {% endif %}
                 </td>
 
-                <td class="tableJobID">{{task.pid}}</td>
-                <td class="tableUser">{{task.user}}</td>
-                <td class="tableName">{{task.file_name}}</td>
-                <td class="program">{{task.program}}</td>
-                <td class="startTime">
-                    {{ task.start_time|date:"d.m.Y H:i" }}
-                </td>
-                <td class="startTime">
-                    {{ task.end_time|date:"d.m.Y H:i" }}
-                </td>
-                <td class="state">{{task.state}}</td>
-                <td class="runningTime">0:25</td>
-                <td class="cpus">16</td>
-                <td class="minMemory">250</td>
-
+                <td class="tableJobID">{{ entry.task.pid }}</td>
+                <td class="tableUser">{{ entry.task.user }}</td>
+                <td class="tableName">{{ entry.task.file_name }}</td>
+                <td class="program">{{ entry.task.program }}</td>
+                <td class="startTime">{{ entry.task.start_time|date:"d.m.Y H:i" }}</td>
+                <td class="startTime">{{ entry.task.end_time|date:"d.m.Y H:i" }}</td>
+                <td class="state">{{ entry.task.state }}</td>
+                <td class="runningTime">{{ entry.running_time_str }}</td>
+                <td class="cpus">{{ entry.cpu|floatformat:1 }}%</td>
+                <td class="minMemory">{{ entry.memory }} MB</td>
             </tr>
             {% endfor %}
 
@@ -312,9 +307,6 @@
             window.location.href = `/tasks/open-dir/${taskId}/`;
         }
 
-
-
-
     </script>
 
 
@@ -323,7 +315,7 @@
     <!------------------------------------------------------------------------------------------------>
     <!------------------------------  Memory chart---------------------------------------------------->
     <!------------------------------------------------------------------------------------------------>
-    <div class="chartArea">
+    <div class="chartArea" style="margin-bottom: 1rem;">
         <div>
             <canvas id="memory_chart"></canvas>
         </div>

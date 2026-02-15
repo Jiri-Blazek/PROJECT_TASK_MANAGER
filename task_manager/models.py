@@ -50,8 +50,8 @@ class Program(models.Model):
 class SystemResources(models.Model):
     cpu = models.PositiveSmallIntegerField()
     memory = models.PositiveSmallIntegerField()
-    date = models.DateTimeField()
     task_instance = models.ForeignKey("TaskInstance", on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Resources for Task {self.task_instance.pid}"

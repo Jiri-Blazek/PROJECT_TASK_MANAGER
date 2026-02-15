@@ -24,20 +24,64 @@ from django.http import HttpResponseForbidden
 import logging
 
 
+from django.utils import timezone
+from datetime import timedelta
+from django.http import JsonResponse
+
+
+@login_required
 def overview_view(request):
     programs = get_programs_for_tabs()
+    task_data = []
     if request.user.groups.filter(name="Computation").exists():
         tasks = TaskInstance.objects.all()
         for task in tasks:
             if task.state == "RUNNING":
                 if not task.pid or not psutil.pid_exists(task.pid):
-                    task.state = "FAILED"  # Proces skončil mimo naši kontrolu
+                    task.state = "FAILED"
                     task.save()
+
+        for task in tasks:
+            latest = (
+                SystemResources.objects.filter(task_instance=task)
+                .order_by("-created_at")
+                .first()
+            )
+
+            # running time:
+            if task.state == "RUNNING":
+                running_time_sec = (timezone.now() - task.start_time).total_seconds()
+            elif task.state == "WAITING":
+                running_time_sec = 0
+            else:
+                # ukončené tasky: rozdíl mezi start_time a posledním zaznamenaným časem
+                if latest:
+                    running_time_sec = (
+                        latest.created_at - task.start_time
+                    ).total_seconds()
+                else:
+                    running_time_sec = 0
+            hours, remainder = divmod(int(running_time_sec), 3600)
+            minutes, seconds = divmod(remainder, 60)
+            running_time_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+            cpu = latest.cpu if latest and task.state == "RUNNING" else 0
+            memory = latest.memory if latest and task.state == "RUNNING" else 0
+            task_data.append(
+                {
+                    "task": task,
+                    "cpu": cpu,
+                    "memory": memory,
+                    "start_time": task.start_time,
+                    "running_time_sec": running_time_sec,
+                    "running_time_str": running_time_str,
+                }
+            )
+
         return render(
             request,
             "task_manager/overview.html",
             {
-                "tasksList": tasks,
+                "tasksData": task_data,
                 "program_name": "overview",
                 "programs": programs,
             },
@@ -46,6 +90,7 @@ def overview_view(request):
         return HttpResponse("<h1>You dont have permission.</h1>")
 
 
+@login_required
 def program_create_view(request, program_name):
     programs = get_programs_for_tabs()
     if program_name == "overview":
@@ -239,3 +284,57 @@ def kill_job_view(request, pid):
         return HttpResponseForbidden("Acces denied by OS.")
 
     return redirect("program_view", program_name="overview")
+
+
+########################### Task monitoring ##################################################
+
+
+from django.http import JsonResponse
+from django.utils import timezone
+from .models import TaskInstance, SystemResources
+import psutil
+
+
+def tasks_status_api(request):
+    tasks = TaskInstance.objects.all()
+    tasks_list = []
+
+    for task in tasks:
+        # automaticky označit RUNNING task jako FAILED, pokud PID neexistuje
+        if task.state == "RUNNING":
+            if not task.pid or not psutil.pid_exists(task.pid):
+                task.state = "FAILED"
+                task.save()
+
+        latest = (
+            SystemResources.objects.filter(task_instance=task)
+            .order_by("-created_at")
+            .first()
+        )
+
+        if task.state == "RUNNING":
+            running_time_sec = (timezone.now() - task.start_time).total_seconds()
+            cpu = latest.cpu if latest else 0
+            memory = latest.memory if latest else 0
+        elif task.state == "WAITING":
+            running_time_sec = 0
+            cpu = memory = 0
+        else:
+            if latest:
+                running_time_sec = (latest.created_at - task.start_time).total_seconds()
+            else:
+                running_time_sec = 0
+            cpu = memory = 0
+
+        tasks_list.append(
+            {
+                "pid": task.pid,
+                "state": task.state,
+                "cpu": cpu,
+                "memory": memory,
+                "start_time": task.start_time.isoformat(),
+                "running_time_sec": int(running_time_sec),
+            }
+        )
+
+    return JsonResponse({"tasks": tasks_list})

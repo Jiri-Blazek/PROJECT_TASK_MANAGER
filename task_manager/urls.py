@@ -1,5 +1,6 @@
 from django.urls import path
 from task_manager import views
+from .views import tasks_status_api
 
 
 urlpatterns = [
@@ -14,4 +15,5 @@ urlpatterns = [
         name="open_working_directory",
     ),
     path("tasks/kill/<int:pid>/", views.kill_job_view, name="kill_job"),
+    path("api/tasks-status/", tasks_status_api, name="tasks_status_api"),
 ]

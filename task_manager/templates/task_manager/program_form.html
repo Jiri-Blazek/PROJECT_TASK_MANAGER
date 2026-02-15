@@ -2,13 +2,13 @@
 {% load crispy_forms_tags %}
 
 {%block base_content%}
-<form action="{{request.path}}" method="post">
+<form action="{{request.path}}" method="post" style="margin-top: 1rem;">
     {% csrf_token%}
     <div style="max-width: 500px; margin: 0 auto;">
         {{form|crispy}}
 
 
-        <button type="submit" class="button is-warning">Submit</button>
+        <button type="submit" class="button is-warning" style="margin-bottom: 1rem;">Submit</button>
     </div>
 </form>
 
