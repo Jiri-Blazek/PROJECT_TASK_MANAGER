@@ -32,7 +32,7 @@ from django.http import JsonResponse
 ########################### Overview ####################################
 
 
-@login_required
+# @login_required
 def overview_view(request):
     if not request.user.groups.filter(name="Computation").exists():
         return HttpResponse("<h1>You dont have permission.</h1>")
@@ -128,7 +128,7 @@ def overview_view(request):
 ########################### Form for submiting ####################################
 
 
-@login_required
+# @login_required
 def program_create_view(request, program_name):
     programs = get_programs_for_tabs()
     if program_name == "overview":
