@@ -34,8 +34,8 @@ from django.http import JsonResponse
 
 # @login_required
 def overview_view(request):
-    if not request.user.groups.filter(name="Computation").exists():
-        return HttpResponse("<h1>You dont have permission.</h1>")
+    # if not request.user.groups.filter(name="Computation").exists():
+    #   return HttpResponse("<h1>You dont have permission.</h1>")
 
     programs = get_programs_for_tabs()
     now = timezone.now()
