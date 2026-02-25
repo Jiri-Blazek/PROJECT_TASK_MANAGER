@@ -11,7 +11,6 @@ pillow==12.1.0
 psutil==7.2.1
 python-docx==1.2.0
 python-pptx==1.0.2
-pywin32==311
 sqlparse==0.5.5
 typing_extensions==4.15.0
 tzdata==2025.3
