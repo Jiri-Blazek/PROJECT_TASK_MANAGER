@@ -1,6 +1,11 @@
 from django.urls import path
 from task_manager import views
 from .views import tasks_status_api
+from django.shortcuts import redirect
+
+
+def home_redirect(request):
+    return redirect("tasks/overview/")
 
 
 urlpatterns = [
