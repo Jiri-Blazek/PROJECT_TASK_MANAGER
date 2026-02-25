@@ -18,8 +18,14 @@
                     <div class="th-center">Get into<br> Job Directory</div>
                 </th>
                 <th>
+                    <div class="th-center">
+                        <p>Get History</p>
+                    </div>
+                </th>
+                <th>
                     <div class="th-center"> Kill the Job</div>
                 </th>
+
                 <th>
                     <div class="th-center">
                         <p>Job ID</p>
@@ -99,6 +105,15 @@
                     </button>
                 </td>
                 <td>
+                    <form method="post" action="{% url 'job_history' entry.task.pid %}" class="history-form">
+                        {% csrf_token %}
+                        <button type="button" class="button is-small table-button getHis"
+                            data-pid="{{ entry.task.pid }}">
+                            Get his.
+                        </button>
+                    </form>
+                </td>
+                <td>
                     {% if entry.task.state == "RUNNING" and entry.task.pid %}
                     <form method="post" action="{% url 'kill_job' entry.task.pid %}" class="kill-form">
                         {% csrf_token %}
@@ -111,6 +126,7 @@
                     Not Available
                     {% endif %}
                 </td>
+
 
                 <td class="tableJobID">{{ entry.task.pid }}</td>
                 <td class="tableUser">{{ entry.task.user }}</td>
@@ -128,9 +144,26 @@
 
 
 
+
+
+
+
         </tbody>
     </table>
+    <!--
+    <nav class="pagination is-small" role="navigation" aria-label="pagination">
+        <a href="#" class="pagination-previous">Previous</a>
+        <a href="#" class="pagination-next">Next page</a>
+        <ul class="pagination-list">
+            {% for item in page_range %}
+            <li><a href="{{request.path}}?page={{item}}" class="pagination-link" aria-label="Goto page 1">{item}</a>
+            </li>
+            {% endfor %}
 
+
+        </ul>
+    </nav>
+-->
     <article class="message is-warning is-hidden info" id="killJobInfo">
         <div class="message-header">
             <p>Info</p>
@@ -146,6 +179,14 @@
             </div>
         </div>
     </article>
+
+
+    <div id="historyContainer" style="display:none;">
+        <form id="historyForm">
+            <h3>Historie úlohy</h3>
+            <canvas id="historyChart"></canvas>
+        </form>
+    </div>
 
     <script>
         const tableUsers = document.querySelectorAll(".tableUser");
@@ -211,7 +252,7 @@
             })
         }
         const tableRows = document.querySelectorAll("#runningJobsTable tbody tr");
-        //-------------------- Filter by user and program ---------------//
+        //-------------------- Filter by user state and program ---------------//
         function filterTable() {
             const userValue = userList.value;
             const programValue = programList.value;
@@ -307,14 +348,47 @@
             window.location.href = `/tasks/open-dir/${taskId}/`;
         }
 
+        //-------------------- Get His. ---------------//
+        document.querySelectorAll('.getHis').forEach(button => {
+            button.addEventListener('click', function () {
+                const pid = this.dataset.pid;
+
+                fetch(`/history/${pid}/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('historyContainer').style.display = 'block';
+
+                        const ctx = document.getElementById('historyChart').getContext('2d');
+
+                        new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: data.labels,
+                                datasets: [{
+                                    label: 'Vývoj hodnot',
+                                    data: data.values,
+                                    borderColor: 'blue',
+                                    fill: false
+                                }]
+                            }
+                        });
+                    });
+            });
+        });
     </script>
 
 
 
 
     <!------------------------------------------------------------------------------------------------>
-    <!------------------------------  Memory chart---------------------------------------------------->
+    <!------------------------------      Charts  ---------------------------------------------------->
     <!------------------------------------------------------------------------------------------------>
+
+    {{ cpu_labels|json_script:"cpu-labels-data" }}
+    {{ used_cpus|json_script:"used-cpus-data" }}
+    {{ memory_labels|json_script:"memory-labels-data" }}
+    {{ used_memory|json_script:"used-memory-data" }}
+
     <div class="chartArea" style="margin-bottom: 1rem;">
         <div>
             <canvas id="memory_chart"></canvas>
@@ -322,14 +396,112 @@
         <div>
             <canvas id="cpus_chart"></canvas>
         </div>
-        <script src="{% static 'task_manager/chart.js' %}"></script>
-        <script src="{% static 'task_manager/memory_chart.js' %}"></script>
-        <script src="{% static 'task_manager/cpus_chart.js' %}"></script>
-        <script>
-            new Chart(memory_chart, memory_chart_config);
-            new Chart(cpus_chart, cpus_chart_config);
-        </script>
 
+
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <!--<script src="{% static 'task_manager/cpus_chart.js' %}"></script>
+        <script src="{% static 'task_manager/memory_chart.js' %}"></script>-->
+
+        <script>
+            const memoryLabels = JSON.parse(
+                document.getElementById("memory-labels-data").textContent
+            );
+            const usedMemory = JSON.parse(
+                document.getElementById("used-memory-data").textContent
+            );
+
+            const cpuLabels = JSON.parse(
+                document.getElementById("cpu-labels-data").textContent
+            );
+            const usedCpu = JSON.parse(
+                document.getElementById("used-cpus-data").textContent
+            );
+
+            const MAX_MEMORY = 1000;
+            //const restMemory = usedMemory.map(value => MAX_MEMORY - value);
+
+            const memoryChart = document.getElementById("memory_chart");
+
+            const memoryChartConfig = {
+                type: 'bar',
+                data: {
+                    labels: memoryLabels,
+                    datasets: [
+                        {
+                            label: 'Current used memory',
+                            data: usedMemory,
+                            backgroundColor: '#FFB70F',
+
+                        },
+                        // {
+                        //     label: 'Remaining memory',
+                        //     data: restMemory,
+                        //     borderColor: ' rgba(54, 162, 235, 0.2)',
+                        // },
+                    ]
+                },
+                options: {
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Used memory [MB]',
+                            font: { size: 18, weight: 'bold' }
+                        },
+                    },
+                    responsive: true,
+                    scales: {
+                        x: { stacked: true },
+                        y: { stacked: true }
+                    }
+                }
+            };
+
+
+
+
+            const MAX_CPU = 100;
+            //const restCpu = usedCpu.map(value => MAX_CPU - value);
+
+            const cpuChart = document.getElementById("cpus_chart");
+
+            const cpuChartConfig = {
+                type: 'bar',
+                data: {
+                    labels: cpuLabels,
+                    datasets: [
+                        {
+                            label: 'Current used cpu',
+                            data: usedCpu,
+                            backgroundColor: '#FFB70F',
+
+                        },
+                        // {
+                        //     label: 'Remaining cpu',
+                        //      data: restCpu,
+                        //      borderColor: ' rgba(54, 162, 235, 0.2)',
+                        //  },
+                    ]
+                },
+                options: {
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Used cpu [%]',
+                            font: { size: 18, weight: 'bold' }
+                        },
+                    },
+                    responsive: true,
+                    scales: {
+                        x: { stacked: true },
+                        y: { stacked: true }
+                    }
+                }
+            };
+
+            new Chart(memoryChart, memoryChartConfig);
+            new Chart(cpuChart, cpuChartConfig);
+        </script>
     </div>
 </div>
+
 {%endblock%}

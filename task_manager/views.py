@@ -3,91 +3,129 @@ from task_manager.models import TaskInstance, Program, SystemResources
 from django.contrib.auth.decorators import login_required
 from task_manager.forms import TaskForm
 from django.utils.text import slugify
+from django.db.models import OuterRef, Subquery
+from collections import defaultdict
+import json
+from django.core.paginator import Paginator
 
 
-from pathlib import Path
-
-import os, signal
+import os
 import subprocess
 from openpyxl import Workbook
 from docx import Document
 from pptx import Presentation
-import time
+
 from django.utils import timezone
-from datetime import datetime
+
 import threading
 
 
 from django.views.decorators.http import require_POST
 import psutil
 from django.http import HttpResponseForbidden
-import logging
 
 
 from django.utils import timezone
-from datetime import timedelta
+
 from django.http import JsonResponse
+
+########################### Overview ####################################
 
 
 @login_required
 def overview_view(request):
-    programs = get_programs_for_tabs()
-    task_data = []
-    if request.user.groups.filter(name="Computation").exists():
-        tasks = TaskInstance.objects.all()
-        for task in tasks:
-            if task.state == "RUNNING":
-                if not task.pid or not psutil.pid_exists(task.pid):
-                    task.state = "FAILED"
-                    task.save()
-
-        for task in tasks:
-            latest = (
-                SystemResources.objects.filter(task_instance=task)
-                .order_by("-created_at")
-                .first()
-            )
-
-            # running time:
-            if task.state == "RUNNING":
-                running_time_sec = (timezone.now() - task.start_time).total_seconds()
-            elif task.state == "WAITING":
-                running_time_sec = 0
-            else:
-                # ukončené tasky: rozdíl mezi start_time a posledním zaznamenaným časem
-                if latest:
-                    running_time_sec = (
-                        latest.created_at - task.start_time
-                    ).total_seconds()
-                else:
-                    running_time_sec = 0
-            hours, remainder = divmod(int(running_time_sec), 3600)
-            minutes, seconds = divmod(remainder, 60)
-            running_time_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
-            cpu = latest.cpu if latest and task.state == "RUNNING" else 0
-            memory = latest.memory if latest and task.state == "RUNNING" else 0
-            task_data.append(
-                {
-                    "task": task,
-                    "cpu": cpu,
-                    "memory": memory,
-                    "start_time": task.start_time,
-                    "running_time_sec": running_time_sec,
-                    "running_time_str": running_time_str,
-                }
-            )
-
-        return render(
-            request,
-            "task_manager/overview.html",
-            {
-                "tasksData": task_data,
-                "program_name": "overview",
-                "programs": programs,
-            },
-        )
-    else:
+    if not request.user.groups.filter(name="Computation").exists():
         return HttpResponse("<h1>You dont have permission.</h1>")
+
+    programs = get_programs_for_tabs()
+    now = timezone.now()
+
+    latest_resources = SystemResources.objects.filter(
+        task_instance=OuterRef("pk")
+    ).order_by("-created_at")
+
+    tasks = TaskInstance.objects.annotate(
+        last_cpu=Subquery(latest_resources.values("cpu")[:1]),
+        last_memory=Subquery(latest_resources.values("memory")[:1]),
+        last_measure_time=Subquery(latest_resources.values("created_at")[:1]),
+    ).select_related("user", "program")
+
+    task_data = []
+
+    for task in tasks:
+        # CPU / Memory
+        if task.state == "RUNNING":
+            cpu = task.last_cpu or 0
+            memory = task.last_memory or 0
+        else:
+            cpu = 0
+            memory = 0
+
+        # Running time
+        if task.state == "RUNNING":
+            running_time_sec = (now - task.start_time).total_seconds()
+        elif task.end_time:
+            running_time_sec = (task.end_time - task.start_time).total_seconds()
+        else:
+            running_time_sec = 0
+
+        hours, remainder = divmod(int(running_time_sec), 3600)
+        minutes, seconds = divmod(remainder, 60)
+        running_time_str = f"{hours:02d}:{minutes:02d}:{seconds:02d}"
+
+        task_data.append(
+            {
+                "task": task,
+                "cpu": cpu,
+                "memory": memory,
+                "running_time_sec": running_time_sec,
+                "running_time_str": running_time_str,
+            }
+        )
+
+        # ------------------ Preparation of inputs for charts ----------------
+    program_totals = defaultdict(lambda: {"cpu": 0, "memory": 0})
+
+    for entry in task_data:
+        prog_name = entry["task"].program.name
+        program_totals[prog_name]["cpu"] += entry["cpu"]
+        program_totals[prog_name]["memory"] += entry["memory"]
+
+    # Celkem
+    total_cpu = sum(v["cpu"] for v in program_totals.values())
+    total_memory = sum(v["memory"] for v in program_totals.values())
+
+    # seznamy pro grafy
+    cpu_labels = list(program_totals.keys()) + ["Total"]
+    used_cpus = [v["cpu"] for v in program_totals.values()] + [total_cpu]
+    memory_labels = list(program_totals.keys()) + ["Total"]
+    used_memory = [v["memory"] for v in program_totals.values()] + [total_memory]
+
+    # -------------------------------------------------------------------
+    # task_list = TaskInstance.objects.all()
+    # paginator = Paginator(task_list, per_page=5)
+    # page_number = request.GET.get("page", 1)
+    # page = paginator.get_page(page_number)
+    # page_range = paginator.get_elided_page_range(page.number, on_each_side=2, on_ends=1)
+    return render(
+        request,
+        "task_manager/overview.html",
+        {
+            #      "paginator": paginator,
+            #     "page": page,
+            # "page_range": page_range,
+            "tasksData": task_data,
+            "program_name": "overview",
+            "programs": programs,
+            "cpu_labels": cpu_labels,
+            "used_cpus": used_cpus,
+            "memory_labels": memory_labels,
+            "used_memory": used_memory,
+        },
+    )
+
+
+########################### Form for submiting ####################################
 
 
 @login_required
@@ -121,6 +159,9 @@ def program_create_view(request, program_name):
             "programs": programs,
         },
     )
+
+
+########################### Tabs for programs ####################################
 
 
 def get_programs_for_tabs():
@@ -255,33 +296,45 @@ def open_working_directory(request, task_id):
     return redirect("/tasks/overview/")
 
 
+########################### Get History ####################################
+
+
+def job_history_view(request, pid):
+    history = get_object_or_404(SystemResources, pid=pid)
+    # history = get_task_history(task_id)  # např. seznam paměti a CPU
+
+    return HttpResponseForbidden(
+        request, "You dont have permission to kill this process."
+    )
+
+
 ########################### Kill Job ##################################################
 @require_POST
 def kill_job_view(request, pid):
     task = get_object_or_404(TaskInstance, pid=pid)
 
     if task.user != request.user:
-        return HttpResponseForbidden(
-            "You dont have permission to kill this process.",
-        )
+        return HttpResponseForbidden("You dont have permission to kill this process.")
+
+    now = timezone.now()
 
     try:
         p = psutil.Process(pid)
         p.terminate()
         p.wait(timeout=3)
-
         task.state = "KILLED"
+        task.end_time = now
         task.save()
-
     except psutil.NoSuchProcess:
-        # proces už neběží –  finished
-        task.state = "FINISHED"
+        # proces už neběží → nestandardní ukončení
+        task.state = "FAILED"
+        task.end_time = now
         task.save()
-
     except psutil.AccessDenied:
         task.state = "FAILED"
+        task.end_time = now
         task.save()
-        return HttpResponseForbidden("Acces denied by OS.")
+        return HttpResponseForbidden("Access denied by OS.")
 
     return redirect("program_view", program_name="overview")
 

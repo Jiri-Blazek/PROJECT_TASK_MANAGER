@@ -1,0 +1,42 @@
+{% extends 'task_manager/_base.html' %}
+
+{% block base_content %}
+<h2>Job {{ task.id }} - {{ task.file_name }}</h2>
+
+<form method="post" action="{% url 'job_history' task.pid %}">
+    {% csrf_token %}
+    <button type="submit" class="button is-danger">Kill job</button>
+</form>
+
+<div style="display:flex; gap:2rem; margin-top:2rem;">
+    <canvas id="memory_chart" style="flex:1;"></canvas>
+    <canvas id="cpu_chart" style="flex:1;"></canvas>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const memoryLabels = {{ memory_labels| safe }};
+    const usedMemory = {{ used_memory| safe }};
+    const cpuLabels = {{ cpu_labels| safe }};
+    const usedCpu = {{ used_cpu| safe }};
+
+    new Chart(document.getElementById("memory_chart"), {
+        type: 'bar',
+        data: {
+            labels: memoryLabels,
+            datasets: [{ label: 'Used memory [MB]', data: usedMemory, backgroundColor: '#FFB70F' }]
+        },
+        options: { responsive: true }
+    });
+
+    new Chart(document.getElementById("cpu_chart"), {
+        type: 'bar',
+        data: {
+            labels: cpuLabels,
+            datasets: [{ label: 'Used CPU [%]', data: usedCpu, backgroundColor: '#FFB70F' }]
+        },
+        options: { responsive: true }
+    });
+</script>
+
+{% endblock %}

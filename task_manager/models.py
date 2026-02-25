@@ -51,6 +51,7 @@ class SystemResources(models.Model):
     cpu = models.PositiveSmallIntegerField()
     memory = models.PositiveSmallIntegerField()
     task_instance = models.ForeignKey("TaskInstance", on_delete=models.CASCADE)
+    elapsed_seconds = models.FloatField()
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

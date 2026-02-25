@@ -15,5 +15,6 @@ urlpatterns = [
         name="open_working_directory",
     ),
     path("tasks/kill/<int:pid>/", views.kill_job_view, name="kill_job"),
+    path("tasks/history/<int:pid>/", views.job_history_view, name="job_history"),
     path("api/tasks-status/", tasks_status_api, name="tasks_status_api"),
 ]
