@@ -4,13 +4,13 @@ from .views import tasks_status_api
 from django.shortcuts import redirect
 
 
-# def home_redirect(request):
-#   return redirect("tasks/overview/")
+def home_redirect(request):
+    return redirect("tasks/overview/")
 
 
 urlpatterns = [
-    # path("", home_redirect),
-    path("", views.overview_view),  # overview_view
+    path("", home_redirect),
+    path("tasks/overview/", views.overview_view),  # overview_view
     path(
         "tasks/<slug:program_name>/", views.program_create_view, name="program_view"
     ),  # program_view
