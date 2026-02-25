@@ -17,10 +17,18 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
-from debug_toolbar.toolbar import debug_toolbar_urls
+
+from django.conf import settings
 
 urlpatterns = [
     path("", include("task_manager.urls")),
     path("accounts/", include("allauth.urls")),
     path("admin/", admin.site.urls),
-] + debug_toolbar_urls()
+]
+
+if settings.DEBUG:
+    from django.conf.urls.static import static
+    from debug_toolbar.toolbar import debug_toolbar_urls
+
+    urlpatterns.extend(debug_toolbar_urls())
+    # urlpatterns.extend(static())
