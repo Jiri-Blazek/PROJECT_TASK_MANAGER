@@ -97,7 +97,7 @@
                 </th>
 
             </tr>
-            {% for entry in tasksData %}
+            {% for entry in tasksData|slice:":5" %}
             <tr>
                 <td>
                     <button class="button is-small table-button getDir" data-task-id="{{ entry.task.id }}">
@@ -107,10 +107,51 @@
                 <td>
                     <form method="post" action="{% url 'job_history' entry.task.pid %}" class="history-form">
                         {% csrf_token %}
-                        <button type="button" class="button is-small table-button getHis"
+                        <button class="getHis button is-small table-button"
+                            data-url="{% url 'job_history' entry.task.pid %}">Get His</button>
+                    </form>
+                </td>
+                <td>
+                    {% if entry.task.state == "RUNNING" and entry.task.pid %}
+                    <form method="post" action="{% url 'kill_job' entry.task.pid %}" class="kill-form">
+                        {% csrf_token %}
+                        <button type="button" class="button is-small table-button killJob"
                             data-pid="{{ entry.task.pid }}">
-                            Get his.
+                            Kill
                         </button>
+                    </form>
+                    {% else %}
+                    Not Available
+                    {% endif %}
+                </td>
+
+
+                <td class="tableJobID">{{ entry.task.pid }}</td>
+                <td class="tableUser">{{ entry.task.user }}</td>
+                <td class="tableName">{{ entry.task.file_name }}</td>
+                <td class="program">{{ entry.task.program }}</td>
+                <td class="startTime">{{ entry.task.start_time|date:"d.m.Y H:i" }}</td>
+                <td class="startTime">{{ entry.task.end_time|date:"d.m.Y H:i" }}</td>
+                <td class="state">{{ entry.task.state }}</td>
+                <td class="runningTime">{{ entry.running_time_str }}</td>
+                <td class="cpus">{{ entry.cpu|floatformat:1 }}%</td>
+                <td class="minMemory">{{ entry.memory }} MB</td>
+            </tr>
+            {% endfor %}
+
+            {% for entry in tasksData|slice:"5:" %}
+            <tr class="extra-row" style="display:none;">
+
+                <td>
+                    <button class="button is-small table-button getDir" data-task-id="{{ entry.task.id }}">
+                        Get dir.
+                    </button>
+                </td>
+                <td>
+                    <form method="post" action="{% url 'job_history' entry.task.pid %}" class="history-form">
+                        {% csrf_token %}
+                        <button class="getHis button is-small table-button"
+                            data-url="{% url 'job_history' entry.task.pid %}">Get His</button>
                     </form>
                 </td>
                 <td>
@@ -150,6 +191,24 @@
 
         </tbody>
     </table>
+    <button id="showMoreBtn" class="button is-warning is-info" style="margin-top: 0rem;">Show more</button>
+
+    <script>
+        const showMoreBtn = document.getElementById('showMoreBtn');
+        let expanded = false;
+
+        showMoreBtn.addEventListener('click', () => {
+            const extraRows = document.querySelectorAll('.extra-row');
+            expanded = !expanded;
+
+            extraRows.forEach(row => {
+                row.style.display = expanded ? '' : 'none';
+            });
+
+            showMoreBtn.textContent = expanded ? 'Show less' : 'Show more';
+        });
+    </script>
+
     <!--
     <nav class="pagination is-small" role="navigation" aria-label="pagination">
         <a href="#" class="pagination-previous">Previous</a>
@@ -181,11 +240,25 @@
     </article>
 
 
-    <div id="historyContainer" style="display:none;">
-        <form id="historyForm">
-            <h3>Historie úlohy</h3>
-            <canvas id="historyChart"></canvas>
-        </form>
+
+
+
+    <div class="modal" id="historyModal">
+        <div class="modal-background"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">Task history</p>
+                <button class="delete" aria-label="close" id="closeHistoryModal"></button>
+            </header>
+
+            <section class="modal-card-body">
+                <canvas id="historyChart"></canvas>
+            </section>
+
+            <footer class="modal-card-foot">
+                <button class="button is-warning" id="closeHistoryButton">Close</button>
+            </footer>
+        </div>
     </div>
 
     <script>
@@ -349,32 +422,99 @@
         }
 
         //-------------------- Get His. ---------------//
-        document.querySelectorAll('.getHis').forEach(button => {
-            button.addEventListener('click', function () {
-                const pid = this.dataset.pid;
+        const historyModal = document.getElementById("historyModal");
+        const closeHistoryModal = document.getElementById("closeHistoryModal");
+        const closeHistoryButton = document.getElementById("closeHistoryButton");
+        document.querySelector(".modal-background")
+            .addEventListener("click", closeModal);
 
-                fetch(`/history/${pid}/`)
+        let historyChartInstance = null;
+
+        document.querySelectorAll('.getHis').forEach(button => {
+            button.addEventListener('click', function (event) {
+                event.preventDefault();  // Zabrání refreshi / submitu
+                const url = this.dataset.url;
+
+                fetch(url)
                     .then(response => response.json())
                     .then(data => {
-                        document.getElementById('historyContainer').style.display = 'block';
+                        historyModal.classList.add("is-active");
 
                         const ctx = document.getElementById('historyChart').getContext('2d');
 
-                        new Chart(ctx, {
+                        if (historyChartInstance) {
+                            historyChartInstance.destroy();
+                        }
+
+                        historyChartInstance = new Chart(ctx, {
                             type: 'line',
                             data: {
-                                labels: data.labels,
-                                datasets: [{
-                                    label: 'Vývoj hodnot',
-                                    data: data.values,
-                                    borderColor: 'blue',
-                                    fill: false
-                                }]
+                                labels: data.running_time,
+                                datasets: [
+                                    {
+                                        label: 'Used CPU [%]',
+                                        data: data.cpu,
+                                        borderColor: 'red',
+                                        fill: false,
+                                        tension: 0.3,
+                                        yAxisID: 'yCPU'   // <- přiřazení datasetu k ose CPU
+                                    },
+                                    {
+                                        label: 'Used Memory [MB]',
+                                        data: data.memory,
+                                        borderColor: 'blue',
+                                        fill: false,
+                                        tension: 0.3,
+                                        yAxisID: 'yMemory' // <- přiřazení datasetu k ose Memory
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                plugins: {
+                                    title: {
+                                        display: true,
+                                        text: 'CPU & Memory vs Running Time',
+                                        font: { size: 18, weight: 'bold' }
+                                    }
+                                },
+                                scales: {
+                                    x: {
+                                        title: { display: true, text: 'Running Time [s]' }
+                                    },
+                                    yCPU: {  // první vertikální osa (vlevo)
+                                        type: 'linear',
+                                        position: 'left',
+                                        title: { display: true, text: 'CPU [%]' },
+                                        min: 0,
+                                        max: 100
+                                    },
+                                    yMemory: {  // druhá vertikální osa (vpravo)
+                                        type: 'linear',
+                                        position: 'right',
+                                        title: { display: true, text: 'Memory [MB]' },
+                                        min: 0,
+                                        // max si můžeš spočítat dynamicky podle dat, např. Math.max(...data.memory) + 50
+                                    }
+                                }
                             }
                         });
-                    });
+                    })
+                    .catch(error => console.error("Fetch error:", error));
             });
         });
+        // Zavření modalu
+        function closeModal() {
+            historyModal.classList.remove("is-active");
+
+            if (historyChartInstance) {
+                historyChartInstance.destroy();
+                historyChartInstance = null;
+            }
+        }
+
+        closeHistoryModal.addEventListener("click", closeModal);
+        closeHistoryButton.addEventListener("click", closeModal);
     </script>
 
 

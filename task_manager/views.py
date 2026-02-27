@@ -29,6 +29,7 @@ from django.utils import timezone
 
 from django.http import JsonResponse
 
+
 ########################### Overview ####################################
 
 
@@ -44,11 +45,15 @@ def overview_view(request):
         task_instance=OuterRef("pk")
     ).order_by("-created_at")
 
-    tasks = TaskInstance.objects.annotate(
-        last_cpu=Subquery(latest_resources.values("cpu")[:1]),
-        last_memory=Subquery(latest_resources.values("memory")[:1]),
-        last_measure_time=Subquery(latest_resources.values("created_at")[:1]),
-    ).select_related("user", "program")
+    tasks = (
+        TaskInstance.objects.annotate(
+            last_cpu=Subquery(latest_resources.values("cpu")[:1]),
+            last_memory=Subquery(latest_resources.values("memory")[:1]),
+            last_measure_time=Subquery(latest_resources.values("created_at")[:1]),
+        )
+        .select_related("user", "program")
+        .order_by("-start_time")
+    )
 
     task_data = []
 
@@ -300,11 +305,21 @@ def open_working_directory(request, task_id):
 
 
 def job_history_view(request, pid):
-    history = get_object_or_404(SystemResources, pid=pid)
-    # history = get_task_history(task_id)  # např. seznam paměti a CPU
+    history = SystemResources.objects.filter(task_instance__pid=pid).order_by(
+        "elapsed_seconds"
+    )
 
-    return HttpResponseForbidden(
-        request, "You dont have permission to kill this process."
+    running_time = []
+    cpu_values = []
+    memory_values = []
+
+    for record in history:
+        running_time.append(round(record.elapsed_seconds, 1))  # X-axis
+        cpu_values.append(record.cpu)  # Y1
+        memory_values.append(record.memory)  # Y2
+
+    return JsonResponse(
+        {"running_time": running_time, "cpu": cpu_values, "memory": memory_values}
     )
 
 
